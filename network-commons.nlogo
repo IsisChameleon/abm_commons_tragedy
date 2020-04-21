@@ -1,22 +1,46 @@
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;;     G  U  I  D  E  L  I  N  E  S
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;;  globals in uppercase = constants e.g. MAX-ON-BEST-PATCH
+;;  variables in a procedures that start with _ ==> local variables only used in that procedure
+;;  variables booleans ==> named with a ? at the end e.g. depleted?
+;;
+;; Useful doco:
+;; on selecting an action based on a probability : https://stackoverflow.com/questions/41901313/netlogo-assign-variable-using-probabilities/41902311#41902311
+
+
+extensions [ rnd ]
+
 globals
 [
-  max-on-best-patch  ; maximum value of resource the best patch can hold
-  max-human-vision   ; how many patches ahead a human can see
-  min-human-hunger   ; how many units of resource a human consumes each step to stay well
+  ;; all these variables get their values in "initialize-globals".
+  ;; values won't change over time
+
+  MAX-ON-BEST-PATCH  ; maximum value of resource the best patch can hold
+  MAX-HUMAN-VISION   ; how many patches ahead a human can see
+  MIN-HUMAN-HUNGER   ; how many units of resource a human consumes each step to stay well
+  MAX-HUMAN-HARVEST  ; maximum that a human can harvest during a tick
+  DEBUG-RATE         ; proportion of agents for which the debugging is active
+
+  ;; these variables evolve with the simulation
+
   total-resource     ; total resource available summed over all the resource patches
-  max-human-harvest  ; maximum that a human can harvest during a tick
+
 ]
 patches-own ;; this is the patches of resources
 [
   ; patch charateristics that won't change over time
 
-  regrowth-rate       ; how many units or portion of units regenerated each tick
+  regrowth-rate       ; % patch-max-resource that regrows each tick, between 0 and 1
+  decay-rate          ; % patch-resource lost each tick
   min-to-regrow       ; percentage of patch-max-resource below which the patch won't regrow
+                      ; all % are between 0 and 1
   patch-max-resource  ; the maximum amount of resource this patch can hold
 
   ; patch characteristics that change over time
 
   patch-resource      ; the current amount of resource on this patch
+  depleted?           ; indicate if a patch has been harvested too much and is depleted
 
 ]
 
@@ -34,23 +58,42 @@ turtles-own
   ;; decision
   ?has-moved        ; set to true when a turtle has move. reset to false at the end of Go
 
-  ;; variables valid for one tick
-  best-patch-around    ;; identify 1 patch within the vision that has the max resource (for move decision)
+  ;; variables valid for one tick, set in observe-world
+  random-visible-patch
+  random-neighboring-patch
+  random-visible-turtle
+  best-visible-patch    ;; identify 1 patch within the vision that has the max resource (for move decision)
   best-neighboring-patch ;; identify 1 patch just neighbor that has the max quantity of resource (for harvesting)
-  best-friend-around  ;; identify 1 turtle or None
+  best-visible-turtle  ;; identify 1 turtle or None (with max link strength)
+
+  quantity-harvested ;; quantity harvested this tick
 
 
 ]
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;;     D   E   B   U   G
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+to debugging [ list-values ]
+  if DEBUG = True [
+    if random-float 1 < DEBUG-RATE [
+      output-type but-last list-values
+      output-show last list-values
+    ]
+  ]
+end
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;     S   E   T   U   P
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
 to initialize-globals
-  set max-on-best-patch 100
-  set max-human-vision 4
-  set min-human-hunger 2
-  set max-human-harvest 10
+  set MAX-ON-BEST-PATCH 100
+  set MAX-HUMAN-VISION 4
+  set MIN-HUMAN-HUNGER 2
+  set MAX-HUMAN-HARVEST 5
+
+  set DEBUG-RATE 0.05
 end
 
 to setup
@@ -66,10 +109,10 @@ to setup-turtles
   set-default-shape turtles "person farmer"
   create-turtles nb-villagers [
     setxy random-xcor random-ycor
-    set turtle-hunger min-human-hunger
-    set turtle-vision max-human-vision
+    set turtle-hunger MIN-HUMAN-HUNGER
+    set turtle-vision MAX-HUMAN-VISION
     set turtle-resource 0
-    set max-turtle-harvest max-human-harvest
+    set max-turtle-harvest MAX-HUMAN-HARVEST
   ]
 end
 
@@ -87,14 +130,16 @@ to setup-patches
   ask patches [
     set min-to-regrow 0.5  ;; need to leave at least % amount of the max-patch resource for this patch to regrow
     set regrowth-rate 0.1  ;; % of max resource on patch that regrows every tick if over the min-to-regrow
+    set decay-rate 0.2     ;;
 
   ;; SET INITIAL RESOURCE LEVEL
   ;; inspiration from resource-harvest.nlogo
 
   ;; a certain percentage of patches will be the best
+
     set patch-max-resource 0
     if (random-float 100.0) <= percent-best-land [
-      set patch-max-resource max-on-best-patch
+      set patch-max-resource MAX-ON-BEST-PATCH
       set patch-resource patch-max-resource
     ]
   ]
@@ -113,12 +158,13 @@ to setup-patches
      set patch-resource floor patch-resource   ;; round resource levels to whole numbers
      set patch-max-resource patch-resource      ;; initial resource level is also maximum
      set-patch-color
+     set depleted? false
   ]
 end
 
 to set-patch-color ;; patch proc
   ;; colour scale from 0 to the best patch possible
-  set pcolor scale-color green patch-resource 0 max-on-best-patch
+  set pcolor scale-color green patch-resource 0 MAX-ON-BEST-PATCH
 end
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
@@ -127,37 +173,82 @@ end
 
 to go
   ask turtles [
-    observe-world    ;; set a few variables like best-friend-around, best-patch-around
+    observe-world    ;; set a few variables like best-visible-turtle, best-visible-patch
     move
-    harvest
+    observe-world
+    set quantity-harvested harvest
     consume
     memorize
     change-strategy
     reset-turtle-variables-after-go
   ]
 
+  ask patches [
+    regrow
+  ]
 
-  ifelse total-resource-reporter = 0
+
+  ifelse total-resource-reporter = 0 ;; if no more resources stop
   [ stop ]
   [ tick ]
 
 end
 
+to regrow ;; patch proc
+  ;; only regrow if less than the max of resources AND it's not depleted
+
+  let _depleted?-old depleted?
+
+  if patch-resource <   (min-to-regrow * patch-max-resource) and depleted? = false
+  [set depleted? true]
+
+  if ( patch-resource < patch-max-resource and depleted? = false)[
+
+    let _patch-resource-old patch-resource
+    set patch-resource patch-resource + regrowth-rate * patch-max-resource
+    set patch-resource min list patch-resource patch-max-resource
+
+    debugging  (list "REGROW: patch resource : " _patch-resource-old " - patch-max-resource : "
+      patch-max-resource " - regrowth rate : " regrowth-rate " - new patch resource : " patch-resource )
+
+    set-patch-color
+  ]
+
+  if depleted? = true   [
+    if patch-resource > 0
+    [
+      set patch-resource patch-resource - decay-rate * patch-resource
+      set patch-resource max list patch-resource 0
+    ]
+
+    debugging (list "REGROW:depleted patch=" patch-resource "-lost=" (decay-rate * patch-resource) " resources.")
+  ]
+end
+
 to reset-turtle-variables-after-go ;; turtle proc
     set ?has-moved 0
+    set quantity-harvested 0
 end
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;;     O   B  S  E  R  V  E     W  O  R  L  D
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
 
 to observe-world ;; turtle proc
-  set best-patch-around one-of neighbors4   ;;; this will need to change this is just for test
-  set best-neighboring-patch max-one-of neighbors4 [ patch-resource ]
+  set best-visible-patch max-one-of patches in-radius turtle-vision [ patch-resource ]  ;;; e.g. show max-one-of patches [count turtles-here]  ask patches in-radius 3
+  set random-visible-patch one-of patches in-radius turtle-vision
+  set best-neighboring-patch max-one-of patches at-points [[1 0] [0 1] [0 0] [-1 0] [0 -1]] [ patch-resource ] ;; best patch for harvesting with max-resource
+  set random-neighboring-patch one-of patches at-points [[1 0] [0 1] [0 0] [-1 0] [0 -1]] ;; random neighbboring patch
+
+  debugging (list "OBSERVE-WORLD:best-neighboring-patch=" best-neighboring-patch "-best-visible-patch=" best-visible-patch)
 end
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;     M   O   V   E
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
 to move  ;; turtle proc
-  let decision decide-move-reporter
+  let decision decide-move
   if ( decision = "stay" )[
     stay
   ]
@@ -169,19 +260,23 @@ to move  ;; turtle proc
     move-alone ;; [ patch ]
     set ?has-moved true
   ]
-  if (decision = "")[
+  if (decision = "random")[
     move-at-random
     set ?has-moved true
   ]
 end
 
-to-report decide-move-reporter
+to-report decide-move
   ;; look how much resource is available where the turtle is
   ;; look how much resource in the neighbouring fields
   ;; look who's around (limited by vision field)
   ;; check amongst those who has the strongest bond
   ;; decide on whether to follow a friend
-  let decision "stay"
+
+  let _actions ["stay" "move-alone" "random" ]
+  let _probs [ 0.2 0.4 0.4 ]
+
+  let decision decide _probs _actions
   report decision
 end
 
@@ -190,36 +285,46 @@ end
 
 to move-with-friend ;; [ friend ]
   ;; TODO : move in the direction of friend
+  face best-visible-turtle
+  fd 1
 end
 
 to move-alone ;; [ patch-to-move-to ]
   ;; move towards the patch-to-move-to
+  move-to best-neighboring-patch
 end
 
 to move-at-random  ;; turtle proc
-  rt random 50
-  lt random 50
-  fd 1
+  ;; rt random 50
+  ;; lt random 50
+  ;; fd 1
+  move-to random-neighboring-patch
 end
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;     H   A   R   V   E   S   T
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
-to harvest ;; turtle proc
+to-report harvest ;; turtle proc
   ;; TODO
-  ;; identify richest neighbouring patch (4 patches around the turtle)
+  ;; identify richest neighbouring patch (amongst 5 patches,  4 patches around the turtle and one where turtle is)
   ;; decide how much to harvest (options : harvest-max-possible for a human, harvest-%-max-resource-on-that-patch)
 
-  let _quantity-harvested max-turtle-harvest
+  let _quantity-harvested max-turtle-harvest         ;; TODO : change _quantity-harvested based on turtle decision
+  let actual-quantity-harvested _quantity-harvested
+
   ask patch-set best-neighboring-patch [
+    let _patch-resource-old patch-resource
+    set actual-quantity-harvested min list _quantity-harvested patch-resource ;; we cannot harvest more than what there is in the patch
     if ( patch-resource > 0 ) [
-      set patch-resource patch-resource -  _quantity-harvested ;; just harvesting the max possible
+      set patch-resource patch-resource - actual-quantity-harvested ;; harvesting
+      set patch-resource max list patch-resource 0  ;; don't harvest below zero
       set-patch-color
     ]
+    debugging (list "HARVEST:patch resource was " _patch-resource-old "-now is " patch-resource "-qty harvested=" actual-quantity-harvested)
   ]
 
-
+  report actual-quantity-harvested
 end
 
 
@@ -229,6 +334,7 @@ end
 
 to consume  ;; turtle proc
 
+  ;;
 
 
 end
@@ -241,6 +347,14 @@ to memorize ;; turtle proc
 end
 
 to change-strategy ;; turtle proc
+end
+
+to-report decide [ list-probabilities list-actions ]
+
+  let _decide first rnd:weighted-one-of-list (map list list-actions list-probabilities) last
+  debugging (list "DECIDE:probabilities=" list-probabilities "-list_actions=" list-actions "-decision=" _decide)
+  report _decide
+
 end
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
@@ -337,7 +451,7 @@ nb-villagers
 nb-villagers
 10
 500
-100.0
+280.0
 10
 1
 NIL
@@ -371,6 +485,24 @@ true
 "" ""
 PENS
 "default" 1.0 0 -16777216 true "" "plot total-resource"
+
+OUTPUT
+659
+10
+1388
+456
+12
+
+SWITCH
+659
+464
+765
+497
+DEBUG
+DEBUG
+0
+1
+-1000
 
 @#$#@#$#@
 ## WHAT IS IT?
