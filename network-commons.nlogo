@@ -10,7 +10,8 @@
 ;; on selecting an action based on a probability : https://stackoverflow.com/questions/41901313/netlogo-assign-variable-using-probabilities/41902311#41902311
 
 
-extensions [ rnd table palette ]
+extensions [ rnd table palette nw]
+breed [villagers villager] ;; http://ccl.northwestern.edu/netlogo/docs/dict/breed.html
 
 globals
 [
@@ -601,8 +602,8 @@ PLOT
 205
 433
 Total resources
-NIL
-NIL
+Time
+Total resources
 0.0
 10.0
 0.0
@@ -650,15 +651,28 @@ HORIZONTAL
 @#$#@#$#@
 ## WHAT IS IT?
 
-(a general understanding of what the model is trying to show or explain)
+There’s a maximum rate of exploitation of common-pool resources (CPR) beyond which the resources don’t have time to replenish and are slowly depleted.
+
+We propose to model the interactions of a group of humans with a natural CPR, making the hypothesis that what makes the difference between a sustainable outcome or a tragedy is the nature of the social network between the
 
 ## HOW IT WORKS
 
-(what rules the agents use to create the overall behavior of the model)
+The humans belong to a specific initial social network, living off the resource, harvesting and sharing it through their social network, and reviewing their strategy for resource harvesting depending on information they collect and share about the state of the resources they access. We are going to compare the outcome of the simulation with different network topology and bond strength, to the case with no network, on the total quantity of resources over time.
+
+This model starts with initializing global variables (MAX-ON-BEST-PATCH, MAX-HUMAN-VISION, MIN-HUMAN-HUNGER and MAX-HUMAN-HARVEST), setting resource-patches (
+
+  setup-patches
+  setup-turtles ;; setup humans
+  ;; setup-network
+
+At each step villagers move (depending on their strategy), harvest and consume resources, learn or memorize information about the resources and share it with their nearby nodes, and take a decision about keep their strategy or change it.
 
 ## HOW TO USE IT
 
-(how to use the model, including a description of each of the items in the Interface tab)
+Set the percentage-of-best-land from the slider.
+Set the number of villagers from the slider.
+Press Setup.
+Press Go.
 
 ## THINGS TO NOTICE
 
@@ -683,6 +697,19 @@ HORIZONTAL
 ## CREDITS AND REFERENCES
 
 (a reference to the model's URL on the web if it has one, as well as any other necessary credits, citations, and links)
+
+## ASSUMPTIONS
+
+For simplifying the model we assume that the population (villagers) is constant (nobody is born or dies, nobody is moving to another place to live). Also, we assume that every villagers on the screen lives from the harvest (maybe he/she and his/her family) but we are representating just the head of household who actually do the harvest for support his family group.
+
+RESOURCES-PATCHES
+We assume that the resources had the faculty to grow in a rate of 0.1% (every tick) if they are in at least an amount of 0.5%. Resources have a decay rate of 0.2%, this represents that the resource suffer "depreciation" or aging in this case, as a natural forest.
+
+
+## COMMENTS
+
+The extreme scenarios of percent-best-land are very predictable.
+We need to focus on a reasonable range in which both depletion and sustainability are possible outcomes. I obeserved that the percent-best-land range between 12 and 18% is where things are happening. We can try a broad range like 10-25%. (this is for discussing, maybe it is not important now, and the range could change when we add the network, but it will be importante for the simulations in the final report).
 @#$#@#$#@
 default
 true
