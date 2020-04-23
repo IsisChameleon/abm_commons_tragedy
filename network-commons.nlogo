@@ -63,6 +63,7 @@ turtles-own
   turtle-harvest           ; maximum that this turtle can harvest during a tick
   turtle-memory-size            ; size of a turtle's memory
 
+
   ;; patch characteristics that change over time
   turtle-resource   ; the amount of resource that the turtle privately owns, it adds to it after harvesting
   turtle-memory            ; turtle's memory
@@ -83,9 +84,9 @@ turtles-own
   random-visible-patch
   random-neighboring-patch
   random-visible-turtle
-  best-visible-patch    ;; identify 1 patch within the vision that has the max resource (for move decision)
+  best-visible-patch     ;; identify 1 patch within the vision that has the max resource (for move decision)
   best-neighboring-patch ;; identify 1 patch just neighbor that has the max quantity of resource (for harvesting)
-  best-visible-turtle  ;; identify 1 turtle or None (with max link strength)
+  best-visible-turtle    ;; identify 1 turtle or None (with max link strength)
 
 ]
 
@@ -165,8 +166,8 @@ end
 to setup-patches-test
   ;; used to test the counters etc...
     ask patches [
-     set patch-resource 1  ;; round resource levels to whole numbers
-     set patch-max-resource 0      ;; initial resource level is also maximum
+     set patch-resource 1        ;; round resource levels to whole numbers
+     set patch-max-resource 0    ;; initial resource level is also maximum
      set-patch-color
   ]
 end
@@ -205,7 +206,7 @@ to setup-patches
   ]
   ask patches [
      set patch-resource floor patch-resource   ;; round resource levels to whole numbers
-     set patch-max-resource patch-resource      ;; initial resource level is also maximum
+     set patch-max-resource patch-resource     ;; initial resource level is also maximum
      set-patch-color
      set depleted? false
   ]
@@ -720,7 +721,7 @@ percent-best-land
 percent-best-land
 0
 100
-12.0
+56.0
 1
 1
 NIL
