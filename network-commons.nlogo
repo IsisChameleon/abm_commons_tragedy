@@ -66,6 +66,7 @@ turtles-own
   turtle-harvest           ; maximum that this turtle can harvest during a tick
   turtle-memory-size            ; size of a turtle's memory
 
+
   ;; patch characteristics that change over time
   turtle-resource   ; the amount of resource that the turtle privately owns, it adds to it after harvesting
   turtle-memory            ; turtle's memory
@@ -762,7 +763,15 @@ percent-best-land
 percent-best-land
 0
 100
+<<<<<<< HEAD
 6.0
+=======
+<<<<<<< HEAD
+22.0
+=======
+56.0
+>>>>>>> i have done some minor changes
+>>>>>>> i have done some minor changes
 1
 1
 NIL
