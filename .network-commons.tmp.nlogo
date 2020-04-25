@@ -1,5 +1,5 @@
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-;;     G  U  I  D  E  L  I  N  E  S
+;;           G  U  I  D  E  L  I  N  E  S           ;;
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;  globals in uppercase = constants e.g. MAX-ON-BEST-PATCH
 ;;  variables in a procedures that start with _ ==> local variables only used in that procedure
@@ -20,6 +20,7 @@ globals
   MAX-HUMAN-VISION   ; how many patches ahead a human can see
   MIN-HUMAN-HUNGER   ; how many units of resource a human consumes each step to stay well
   MAX-HUMAN-HARVEST  ; maximum that a human can harvest during a tick
+  MIN-HUMAN-RESOURCE ; minimum units of resource a human has to store
   DEBUG-RATE         ; proportion of agents for which the debugging is active
 
   ;; these variables evolve with the simulation
@@ -72,7 +73,7 @@ turtles-own
 ]
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-;;     D   E   B   U   G
+;;                D   E   B   U   G                 ;;
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 to debugging [ list-values ]
   if DEBUG = True [
@@ -84,7 +85,7 @@ to debugging [ list-values ]
 end
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-;;     S   E   T   U   P
+;;                S   E   T   U   P                 ;;
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
 to initialize-globals
@@ -92,6 +93,7 @@ to initialize-globals
   set MAX-HUMAN-VISION 4
   set MIN-HUMAN-HUNGER 2
   set MAX-HUMAN-HARVEST 5
+  set MIN-HUMAN-RESOURCE 10
 
   set DEBUG-RATE 0.05
 end
@@ -107,7 +109,7 @@ end
 
 to setup-turtles
   set-default-shape turtles "person"
-  create-turtles n-villagers [
+  create-turtles num-villagers [
     setxy random-xcor random-ycor
     set turtle-hunger MIN-HUMAN-HUNGER
     set turtle-vision MAX-HUMAN-VISION
@@ -168,7 +170,7 @@ to set-patch-color ;; patch proc
 end
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-;;     G   O      P   R   O   C
+;;   G   O      P   R   O   C   E   D   U   R   E   ;;
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
 to go
@@ -231,7 +233,7 @@ to reset-turtle-variables-after-go ;; turtle proc
 end
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-;;     O   B  S  E  R  V  E     W  O  R  L  D
+;;     O   B  S  E  R  V  E     W  O  R  L  D       ;;
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
 
@@ -244,7 +246,7 @@ to observe-world ;; turtle proc
   debugging (list "OBSERVE-WORLD:best-neighboring-patch=" best-neighboring-patch "-best-visible-patch=" best-visible-patch)
 end
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-;;     M   O   V   E
+;;                  M   O   V   E                   ;;
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
 to move  ;; turtle proc
@@ -302,7 +304,7 @@ to move-at-random  ;; turtle proc
 end
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-;;     H   A   R   V   E   S   T
+;;            H   A   R   V   E   S   T             ;;
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
 to-report harvest ;; turtle proc
@@ -329,18 +331,17 @@ end
 
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-;;     H   A   R   V   E   S   T
+;;            C   O   N   S   U   M   E             ;;
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
-to consume  ;; turtle proc
-
-  ;;
-
-
+to consume  ;; turtle procedure, turtule consumes resources
+  if (turtle-resource > MIN-HUMAN-RESOURCE) [
+    set  actual-quantity-harvested - MIN-HUMAN-HUNGER
+  ]
 end
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-;;    M E M O R I Z E & S T R A T E G Y
+;;      M E M O R I Z E   &   S T R A T E G Y       ;;
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
 to memorize ;; turtle proc
@@ -358,7 +359,7 @@ to-report decide [ list-probabilities list-actions ]
 end
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-;;     G L O B A L    R  E  P  O  R  T  E  R  S
+;;     G L O B A L    R  E  P  O  R  T  E  R  S     ;;
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
 to-report total-resource-reporter
@@ -447,8 +448,8 @@ SLIDER
 135
 190
 168
-nb-villagers
-nb-villagers
+num-villagers
+num-villagers
 10
 500
 280.0
