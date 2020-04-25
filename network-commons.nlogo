@@ -1,5 +1,5 @@
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-;;     G  U  I  D  E  L  I  N  E  S
+;;           G  U  I  D  E  L  I  N  E  S           ;;
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;  globals in uppercase = constants e.g. MAX-ON-BEST-PATCH
 ;;  variables in a procedures that start with _ ==> local variables only used in that procedure
@@ -96,7 +96,7 @@ friendships-own
 ]
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-;;     D   E   B   U   G
+;;                D   E   B   U   G                 ;;
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 to debugging [ list-values ]
   if DEBUG = True [
@@ -108,7 +108,7 @@ to debugging [ list-values ]
 end
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-;;     S   E   T   U   P
+;;                S   E   T   U   P                 ;;
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
 to initialize-globals
@@ -218,7 +218,7 @@ to set-patch-color ;; patch proc
 end
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-;;     G   O      P   R   O   C
+;;   G   O      P   R   O   C   E   D   U   R   E   ;;
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
 to go
@@ -282,7 +282,7 @@ to reset-turtle-variables-after-go ;; turtle proc
 end
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-;;     O   B  S  E  R  V  E     W  O  R  L  D
+;;     O   B  S  E  R  V  E     W  O  R  L  D       ;;
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
 
@@ -299,7 +299,7 @@ to observe-world ;; turtle proc
 
 end
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-;;     M   O   V   E
+;;                  M   O   V   E                   ;;
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
 to move  ;; turtle proc
@@ -399,7 +399,7 @@ to move-at-random  ;; turtle proc
 end
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-;;     H   A   R   V   E   S   T
+;;            H   A   R   V   E   S   T             ;;
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 to-report decide-harvest [ a-patch ]  ;; turtle proc
   let _decide-harvest turtle-harvest  ;;; TEMPORARY :this needs ot be replaced by a more elaborate decision depending on patch
@@ -437,18 +437,17 @@ end
 
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-;;     C  O  N  S  U  M  E
+;;            C   O   N   S   U   M   E             ;;
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
-to consume  ;; turtle proc
-
-  ;;
-
-
+to consume  ;; turtle procedure, turtule consumes resources
+  if (turtle-resource > MIN-HUMAN-RESOURCE) [
+    set turtle-resource turtle-resource - MIN-HUMAN-HUNGER
+  ]
 end
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-;;    M E M O R I Z E & S T R A T E G Y
+;;      M E M O R I Z E   &   S T R A T E G Y       ;;
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
 to memorize ;; turtle proc
@@ -633,7 +632,7 @@ end
 
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-;;     G L O B A L    R  E  P  O  R  T  E  R  S
+;;     G L O B A L    R  E  P  O  R  T  E  R  S     ;;
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
 to-report total-resource-reporter
@@ -721,7 +720,7 @@ percent-best-land
 percent-best-land
 0
 100
-56.0
+22.0
 1
 1
 NIL
