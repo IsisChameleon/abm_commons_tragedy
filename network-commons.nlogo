@@ -7,7 +7,7 @@
 ;;  all % are between 0 and 1
 ;;
 ;;  local variables ==> _global
-;; Useful doco:
+;; Useful doco: 
 ;; on selecting an action based on a probability : https://stackoverflow.com/questions/41901313/netlogo-assign-variable-using-probabilities/41902311#41902311
 
 
