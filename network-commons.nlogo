@@ -441,9 +441,11 @@ end
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
 to consume  ;; turtle procedure, turtule consumes resources
-  if (turtle-resource > MIN-HUMAN-RESOURCE) [
-    set turtle-resource turtle-resource - MIN-HUMAN-HUNGER
-  ]
+  let _turtle-actual-consume min list turtle-hunger turtle-resource
+  ifelse _turtle-actual-consume < turtle-hunger [
+    set hungry? true
+    ;set turtle-color-hungry
+  ] [set turtle-resource turtle-resource - _turtle-actual-consume]
 end
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
