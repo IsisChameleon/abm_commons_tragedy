@@ -12,7 +12,7 @@
 
 
 extensions [ rnd table palette nw]
-breed [villagers villager] ;; http://ccl.northwestern.edu/netlogo/docs/dict/breed.html
+;; breed [villagers villager] ;; http://ccl.northwestern.edu/netlogo/docs/dict/breed.html
 directed-link-breed [ friendships friendship ] ;; between villagers
 
 globals
@@ -491,9 +491,9 @@ end
 ;;       N  E  T  W  O  R  K  I  N  G
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 to setup-network
-  create-villagers number-of-nodes [
-  ]
+
   random_wire4
+
 end
 
 ;; Not very useful Network. I am not calling this. If you want to try, you can create a button an call this procedure from the interface.
@@ -501,8 +501,8 @@ to random_wire1     ;; Random network. Ask each villager to create a link with a
   ;; If a villager tries to connect with other villager which is already linked, no new link appears.
   ;; Everyone is connected here (everone who is a villager).
   ask friendships [die]
-  ask villagers [
-    create-link-with one-of other villagers
+  ask turtles [
+    create-link-with one-of other turtles
   ]
 end
 
@@ -512,8 +512,8 @@ to random_wire2  ;; Random network. Ask a random villager to create a link with 
   ;; Not everyone is connected here (It depends on the number-of-nodes selected on the slider).
   ask friendships [die]
   repeat number-of-nodes [
-   ask one-of villagers [
-      create-link-with one-of other villagers
+   ask one-of turtles [
+      create-link-with one-of other turtles
     ]
   ]
 
@@ -524,8 +524,8 @@ to random_wire3 ;; Erdős-Rényi random network.
   ask friendships [die]
   if number-of-links > max-links [ set number-of-links max-links ]
   while [count links < number-of-links ] [
-    ask one-of villagers [
-      create-link-with one-of other villagers
+    ask one-of turtles [
+      create-link-with one-of other turtles
     ]
   ]
 end
@@ -533,8 +533,8 @@ end
 to random_wire4 ;; Erdős-Rényi random network with a pair of villagers get a chance to create friendship
   ;; between them with a specified probability.
   ask friendships [die]
-  ask villagers [
-    ask villagers with [ who > [ who ] of myself ] [
+  ask turtles [
+    ask turtles with [ who > [ who ] of myself ] [
       if random-float 1.0 < wiring-probability [
         create-link-with myself
       ]
@@ -637,15 +637,15 @@ NIL
 HORIZONTAL
 
 SLIDER
-18
-135
-190
-168
+4
+108
+176
+141
 nb-villagers
 nb-villagers
 1
 500
-211.0
+51.0
 10
 1
 NIL
@@ -745,20 +745,19 @@ NIL
 HORIZONTAL
 
 SLIDER
-5
-148
-177
-181
+4
+146
+176
+179
 wiring-probability
 wiring-probability
 0
-1
-0.03
-0.01
+0.2
+0.1172
+0.00001
 1
 NIL
 HORIZONTAL
-
 
 MONITOR
 2
@@ -766,7 +765,7 @@ MONITOR
 60
 423
 max-deg
-max [count link-neighbors] of villagers
+max [count link-neighbors] of turtles
 1
 1
 11
@@ -777,7 +776,7 @@ MONITOR
 119
 423
 min-deg
-min [count link-neighbors] of villagers
+min [count link-neighbors] of turtles
 1
 1
 11
