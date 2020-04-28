@@ -6,12 +6,14 @@
 ;;  variables booleans ==> named with a ? at the end e.g. depleted?
 ;;  all % are between 0 and 1
 ;;
+;;  local variables ==> _global
 ;; Useful doco:
 ;; on selecting an action based on a probability : https://stackoverflow.com/questions/41901313/netlogo-assign-variable-using-probabilities/41902311#41902311
 
 
 extensions [ rnd table palette nw]
 breed [villagers villager] ;; http://ccl.northwestern.edu/netlogo/docs/dict/breed.html
+directed-link-breed [ friendships friendship ] ;; between villagers
 
 globals
 [
@@ -87,6 +89,11 @@ turtles-own
 
 ]
 
+friendships-own
+[
+ ;;strength  ;;
+]
+
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;     D   E   B   U   G
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
@@ -121,7 +128,7 @@ to setup
   initialize-globals
   setup-patches
   setup-turtles ;; setup humans
-  ;; setup-network
+  setup-network
   reset-ticks
 end
 
@@ -480,6 +487,60 @@ to-report decide [ list-probabilities list-actions ]
 
 end
 
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;;       N  E  T  W  O  R  K  I  N  G
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+to setup-network
+  create-villagers number-of-nodes [
+  ]
+  random_wire4
+end
+
+;; Not very useful Network. I am not calling this. If you want to try, you can create a button an call this procedure from the interface.
+to random_wire1     ;; Random network. Ask each villager to create a link with another random villager.
+  ;; If a villager tries to connect with other villager which is already linked, no new link appears.
+  ;; Everyone is connected here (everone who is a villager).
+  ask friendships [die]
+  ask villagers [
+    create-link-with one-of other villagers
+  ]
+end
+
+;; Not very useful Network. I am not calling this. If you want to try, you can create a button an call this procedure from the interface.
+to random_wire2  ;; Random network. Ask a random villager to create a link with another random villager.
+  ;; If a villager tries to connect with other villager which is already linked, no new link appears.
+  ;; Not everyone is connected here (It depends on the number-of-nodes selected on the slider).
+  ask friendships [die]
+  repeat number-of-nodes [
+   ask one-of villagers [
+      create-link-with one-of other villagers
+    ]
+  ]
+
+end
+;; Not very useful Network. I am not calling this. If you want to try, you can create a button an call this procedure from the interface.
+to random_wire3 ;; Erdős-Rényi random network.
+  ;; This type of random network ensures a number of links.
+  ask friendships [die]
+  if number-of-links > max-links [ set number-of-links max-links ]
+  while [count links < number-of-links ] [
+    ask one-of villagers [
+      create-link-with one-of other villagers
+    ]
+  ]
+end
+
+to random_wire4 ;; Erdős-Rényi random network with a pair of villagers get a chance to create friendship
+  ;; between them with a specified probability.
+  ask friendships [die]
+  ask villagers [
+    ask villagers with [ who > [ who ] of myself ] [
+      if random-float 1.0 < wiring-probability [
+        create-link-with myself
+      ]
+    ]
+  ]
+end
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;     G L O B A L    R  E  P  O  R  T  E  R  S
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
@@ -492,6 +553,11 @@ end
 to-report total-turtle-resource-reporter
     let _total-turtle-resource sum [ turtle-resource ] of turtles
   report _total-turtle-resource
+end
+
+to-report max-links ;; Report the maximum number of links that can be added to a random network.
+  ;; given an specific number of nodes, with an arbitrary upper bound of 500
+  report min (list (number-of-nodes * (number-of-nodes - 1) / 2) 500)
 end
 @#$#@#$#@
 GRAPHICS-WINDOW
@@ -556,10 +622,10 @@ NIL
 1
 
 SLIDER
-17
-94
-206
-127
+5
+70
+176
+103
 percent-best-land
 percent-best-land
 0
@@ -586,10 +652,10 @@ NIL
 HORIZONTAL
 
 MONITOR
-11
-225
-200
-270
+0
+471
+189
+516
 NIL
 total-resource
 17
@@ -597,10 +663,10 @@ total-resource
 11
 
 PLOT
-5
-283
-205
-433
+0
+518
+200
+668
 Total resources
 Time
 Total resources
@@ -648,6 +714,85 @@ DEBUG-RATE
 NIL
 HORIZONTAL
 
+SLIDER
+214
+492
+386
+525
+number-of-nodes
+number-of-nodes
+0
+500
+0.0
+1
+1
+NIL
+HORIZONTAL
+
+SLIDER
+214
+457
+386
+490
+number-of-links
+number-of-links
+0
+500
+0.0
+1
+1
+NIL
+HORIZONTAL
+
+SLIDER
+5
+148
+177
+181
+wiring-probability
+wiring-probability
+0
+1
+0.03
+0.01
+1
+NIL
+HORIZONTAL
+
+
+MONITOR
+2
+378
+60
+423
+max-deg
+max [count link-neighbors] of villagers
+1
+1
+11
+
+MONITOR
+62
+378
+119
+423
+min-deg
+min [count link-neighbors] of villagers
+1
+1
+11
+
+MONITOR
+123
+379
+180
+424
+nb links
+count links
+1
+1
+11
+
 @#$#@#$#@
 ## WHAT IS IT?
 
@@ -692,7 +837,11 @@ Press Go.
 
 ## RELATED MODELS
 
-(models in the NetLogo Models Library and elsewhere which are of related interest)
+
+
+NETWORKS:
+
+Wilensky, U., Rand, W. (2008). NetLogo Random Network model. http://ccl.northwestern.edu/netlogo/models/RandomNetwork. Center for Connected Learning and Computer-Based Modeling, Northwestern Institute on Complex Systems, Northwestern University, Evanston, IL.
 
 ## CREDITS AND REFERENCES
 
