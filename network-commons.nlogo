@@ -6,11 +6,14 @@
 ;;  variables booleans ==> named with a ? at the end e.g. depleted?
 ;;  all % are between 0 and 1
 ;;
+;;  local variables ==> _global
 ;; Useful doco:
 ;; on selecting an action based on a probability : https://stackoverflow.com/questions/41901313/netlogo-assign-variable-using-probabilities/41902311#41902311
 
 
-extensions [ rnd table palette ]
+extensions [ rnd table palette nw]
+;; breed [villagers villager] ;; http://ccl.northwestern.edu/netlogo/docs/dict/breed.html
+directed-link-breed [ friendships friendship ] ;; between villagers
 
 globals
 [
@@ -86,6 +89,11 @@ turtles-own
 
 ]
 
+friendships-own
+[
+ ;;strength  ;;
+]
+
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;     D   E   B   U   G
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
@@ -120,7 +128,7 @@ to setup
   initialize-globals
   setup-patches
   setup-turtles ;; setup humans
-  ;; setup-network
+  setup-network
   reset-ticks
 end
 
@@ -479,6 +487,60 @@ to-report decide [ list-probabilities list-actions ]
 
 end
 
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;;       N  E  T  W  O  R  K  I  N  G
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+to setup-network
+
+  random_wire4
+
+end
+
+;; Not very useful Network. I am not calling this. If you want to try, you can create a button an call this procedure from the interface.
+to random_wire1     ;; Random network. Ask each villager to create a link with another random villager.
+  ;; If a villager tries to connect with other villager which is already linked, no new link appears.
+  ;; Everyone is connected here (everone who is a villager).
+  ask friendships [die]
+  ask turtles [
+    create-link-with one-of other turtles
+  ]
+end
+
+;; Not very useful Network. I am not calling this. If you want to try, you can create a button an call this procedure from the interface.
+to random_wire2  ;; Random network. Ask a random villager to create a link with another random villager.
+  ;; If a villager tries to connect with other villager which is already linked, no new link appears.
+  ;; Not everyone is connected here (It depends on the number-of-nodes selected on the slider).
+  ask friendships [die]
+  repeat number-of-nodes [
+   ask one-of turtles [
+      create-link-with one-of other turtles
+    ]
+  ]
+
+end
+;; Not very useful Network. I am not calling this. If you want to try, you can create a button an call this procedure from the interface.
+to random_wire3 ;; Erdős-Rényi random network.
+  ;; This type of random network ensures a number of links.
+  ask friendships [die]
+  if number-of-links > max-links [ set number-of-links max-links ]
+  while [count links < number-of-links ] [
+    ask one-of turtles [
+      create-link-with one-of other turtles
+    ]
+  ]
+end
+
+to random_wire4 ;; Erdős-Rényi random network with a pair of villagers get a chance to create friendship
+  ;; between them with a specified probability.
+  ask friendships [die]
+  ask turtles [
+    ask turtles with [ who > [ who ] of myself ] [
+      if random-float 1.0 < wiring-probability [
+        create-link-with myself
+      ]
+    ]
+  ]
+end
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;     G L O B A L    R  E  P  O  R  T  E  R  S
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
@@ -491,6 +553,11 @@ end
 to-report total-turtle-resource-reporter
     let _total-turtle-resource sum [ turtle-resource ] of turtles
   report _total-turtle-resource
+end
+
+to-report max-links ;; Report the maximum number of links that can be added to a random network.
+  ;; given an specific number of nodes, with an arbitrary upper bound of 500
+  report min (list (number-of-nodes * (number-of-nodes - 1) / 2) 500)
 end
 @#$#@#$#@
 GRAPHICS-WINDOW
@@ -555,10 +622,10 @@ NIL
 1
 
 SLIDER
-17
-94
-206
-127
+5
+70
+176
+103
 percent-best-land
 percent-best-land
 0
@@ -570,25 +637,25 @@ NIL
 HORIZONTAL
 
 SLIDER
-18
-135
-190
-168
+4
+108
+176
+141
 nb-villagers
 nb-villagers
 1
 500
-211.0
+51.0
 10
 1
 NIL
 HORIZONTAL
 
 MONITOR
-11
-225
-200
-270
+0
+471
+189
+516
 NIL
 total-resource
 17
@@ -596,13 +663,13 @@ total-resource
 11
 
 PLOT
-5
-283
-205
-433
+0
+518
+200
+668
 Total resources
-NIL
-NIL
+Time
+Total resources
 0.0
 10.0
 0.0
@@ -647,18 +714,109 @@ DEBUG-RATE
 NIL
 HORIZONTAL
 
+SLIDER
+214
+492
+386
+525
+number-of-nodes
+number-of-nodes
+0
+500
+0.0
+1
+1
+NIL
+HORIZONTAL
+
+SLIDER
+214
+457
+386
+490
+number-of-links
+number-of-links
+0
+500
+0.0
+1
+1
+NIL
+HORIZONTAL
+
+SLIDER
+4
+146
+176
+179
+wiring-probability
+wiring-probability
+0
+0.2
+0.1172
+0.00001
+1
+NIL
+HORIZONTAL
+
+MONITOR
+2
+378
+60
+423
+max-deg
+max [count link-neighbors] of turtles
+1
+1
+11
+
+MONITOR
+62
+378
+119
+423
+min-deg
+min [count link-neighbors] of turtles
+1
+1
+11
+
+MONITOR
+123
+379
+180
+424
+nb links
+count links
+1
+1
+11
+
 @#$#@#$#@
 ## WHAT IS IT?
 
-(a general understanding of what the model is trying to show or explain)
+There’s a maximum rate of exploitation of common-pool resources (CPR) beyond which the resources don’t have time to replenish and are slowly depleted.
+
+We propose to model the interactions of a group of humans with a natural CPR, making the hypothesis that what makes the difference between a sustainable outcome or a tragedy is the nature of the social network between the
 
 ## HOW IT WORKS
 
-(what rules the agents use to create the overall behavior of the model)
+The humans belong to a specific initial social network, living off the resource, harvesting and sharing it through their social network, and reviewing their strategy for resource harvesting depending on information they collect and share about the state of the resources they access. We are going to compare the outcome of the simulation with different network topology and bond strength, to the case with no network, on the total quantity of resources over time.
+
+This model starts with initializing global variables (MAX-ON-BEST-PATCH, MAX-HUMAN-VISION, MIN-HUMAN-HUNGER and MAX-HUMAN-HARVEST), setting resource-patches (
+
+  setup-patches
+  setup-turtles ;; setup humans
+  ;; setup-network
+
+At each step villagers move (depending on their strategy), harvest and consume resources, learn or memorize information about the resources and share it with their nearby nodes, and take a decision about keep their strategy or change it.
 
 ## HOW TO USE IT
 
-(how to use the model, including a description of each of the items in the Interface tab)
+Set the percentage-of-best-land from the slider.
+Set the number of villagers from the slider.
+Press Setup.
+Press Go.
 
 ## THINGS TO NOTICE
 
@@ -678,11 +836,28 @@ HORIZONTAL
 
 ## RELATED MODELS
 
-(models in the NetLogo Models Library and elsewhere which are of related interest)
+
+
+NETWORKS:
+
+Wilensky, U., Rand, W. (2008). NetLogo Random Network model. http://ccl.northwestern.edu/netlogo/models/RandomNetwork. Center for Connected Learning and Computer-Based Modeling, Northwestern Institute on Complex Systems, Northwestern University, Evanston, IL.
 
 ## CREDITS AND REFERENCES
 
 (a reference to the model's URL on the web if it has one, as well as any other necessary credits, citations, and links)
+
+## ASSUMPTIONS
+
+For simplifying the model we assume that the population (villagers) is constant (nobody is born or dies, nobody is moving to another place to live). Also, we assume that every villagers on the screen lives from the harvest (maybe he/she and his/her family) but we are representating just the head of household who actually do the harvest for support his family group.
+
+RESOURCES-PATCHES
+We assume that the resources had the faculty to grow in a rate of 0.1% (every tick) if they are in at least an amount of 0.5%. Resources have a decay rate of 0.2%, this represents that the resource suffer "depreciation" or aging in this case, as a natural forest.
+
+
+## COMMENTS
+
+The extreme scenarios of percent-best-land are very predictable.
+We need to focus on a reasonable range in which both depletion and sustainability are possible outcomes. I obeserved that the percent-best-land range between 12 and 18% is where things are happening. We can try a broad range like 10-25%. (this is for discussing, maybe it is not important now, and the range could change when we add the network, but it will be importante for the simulations in the final report).
 @#$#@#$#@
 default
 true
