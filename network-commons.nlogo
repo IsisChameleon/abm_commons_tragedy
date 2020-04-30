@@ -570,7 +570,7 @@ to preferential-attachment
 
 
   ask links [die]
-  ;;nw:generate-preferential-attachment turtles links number-of-nodes min-degree [ set color red ]
+  nw:generate-preferential-attachment turtles links number-of-nodes min-degree [ set color red ]
 
   ;;crt min-degree + 1 [
    ;; ask one-of turtles [
@@ -604,6 +604,11 @@ to closeness ;; for every turtle: is the inverse of the average of it's distance
   centrality [ -> nw:closeness-centrality ]
 end
 
+to weakness ;;
+
+  centrality [ -> nw:weak-component-clusters ]
+end
+
 ; Takes a centrality measure as a reporter task, runs it for all nodes
 ; and set labels, sizes and colors of turtles to illustrate result
 to centrality [ measure ]
@@ -632,13 +637,13 @@ to normalize-sizes-and-colors
     [ ; remap the size to a range between 0.5 and 2.5
       ask turtles [ set size ((size - first _sizes) / _delta) * 2 + 0.5 ]
     ]
-    ask turtles [ set color scale-color red size 0 5 ] ; using a higher range max not to get too white...
+    ask turtles [ set color scale-color red size 0 5 ] ; using a higher range max not to get too white
   ]
 end
 ;; DETECT AND COLOUR CLUSTERS
 to community-detection
   nw:set-context turtles links
-  color-clusters nw:louvain-communities
+  color-clusters nw:louvain-communities ;; detects community structure present in the network maximizing modularity using Louvain method
 end
 
 to color-clusters [ _clusters ]
@@ -681,9 +686,9 @@ to-report max-links ;; Report the maximum number of links that can be added to a
 end
 @#$#@#$#@
 GRAPHICS-WINDOW
-210
+206
 10
-647
+643
 448
 -1
 -1
@@ -765,7 +770,7 @@ nb-villagers
 nb-villagers
 1
 500
-81.0
+31.0
 10
 1
 NIL
@@ -843,7 +848,7 @@ number-of-nodes
 number-of-nodes
 0
 500
-140.0
+50.0
 1
 1
 NIL
@@ -858,7 +863,7 @@ number-of-links
 number-of-links
 0
 500
-71.0
+0.0
 1
 1
 NIL
@@ -920,7 +925,7 @@ CHOOSER
 network-type
 network-type
 "random_simple" "random_num_nodes" "random_max_links" "random_prob" "one-community" "preferential-attachment" "TEST"
-4
+6
 
 SLIDER
 4
