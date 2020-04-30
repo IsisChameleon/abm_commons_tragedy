@@ -576,6 +576,11 @@ to closeness ;; for every turtle: is the inverse of the average of it's distance
   centrality [ -> nw:closeness-centrality ]
 end
 
+to weakness ;;
+
+  centrality [ -> nw:weak-component-clusters ]
+end
+
 ; Takes a centrality measure as a reporter task, runs it for all nodes
 ; and set labels, sizes and colors of turtles to illustrate result
 to centrality [ measure ]
