@@ -495,13 +495,14 @@ end
 to setup-network
   ;; select network type from the chooser
   ask links [ die ] ;; clear links
-  if nb-villagers = 1 [ stop ] ;; all network types require more than 1 villagers to work
+  ;;if nb-villagers = 1 [ stop ] ;; all network types require more than 1 villagers to work
   if network-type = "random_simple" [random_wire1]
   if network-type = "random_num_nodes" [random_wire2]
   if network-type = "random_max_links" [random_wire3]
   if network-type = "random_prob" [random_wire4] ;; requires to set prob > 0 to work
   if network-type = "one-community" [one-community]
   if network-type = "preferential-attachment" [preferential-attachment]
+  ask links [hide-link] ;; this is for hidding links
 end
 
 ;; Not very useful Network. I am not calling this. If you want to try, you can create a button an call this procedure from the interface.
@@ -574,11 +575,6 @@ end
 to closeness ;; for every turtle: is the inverse of the average of it's distances
   ;; to all other turtles.
   centrality [ -> nw:closeness-centrality ]
-end
-
-to weakness ;;
-
-  centrality [ -> nw:weak-component-clusters ]
 end
 
 ; Takes a centrality measure as a reporter task, runs it for all nodes
@@ -742,7 +738,7 @@ nb-villagers
 nb-villagers
 1
 500
-111.0
+91.0
 10
 1
 NIL
@@ -882,7 +878,7 @@ CHOOSER
 network-type
 network-type
 "random_simple" "random_num_nodes" "random_max_links" "random_prob" "one-community" "preferential-attachment"
-5
+3
 
 SLIDER
 4
