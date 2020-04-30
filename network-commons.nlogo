@@ -502,7 +502,7 @@ to setup-network
   if network-type = "random_prob" [random_wire4] ;; requires to set prob > 0 to work
   if network-type = "one-community" [one-community]
   if network-type = "preferential-attachment" [preferential-attachment]
-  ask links [hide-link] ;; this is for hidding links
+  ;;ask links [hide-link] ;; this is for hidding links
 end
 
 ;; Not very useful Network. I am not calling this. If you want to try, you can create a button an call this procedure from the interface.
@@ -546,11 +546,8 @@ end
 
 to one-community
   ;; it works as one community
-
   ask links [die]
-  ask one-of turtles [
-    create-links-with other turtles
-  ]
+  nw:generate-star turtles links nb-villagers [ setup-each-turtle ]
 end
 
 to preferential-attachment
@@ -738,7 +735,7 @@ nb-villagers
 nb-villagers
 1
 500
-91.0
+201.0
 10
 1
 NIL
@@ -816,7 +813,7 @@ number-of-links
 number-of-links
 0
 500
-56.0
+207.0
 1
 1
 NIL
@@ -877,8 +874,8 @@ CHOOSER
 367
 network-type
 network-type
-"random_simple" "random_num_nodes" "random_max_links" "random_prob" "one-community" "preferential-attachment"
-3
+"random_prob" "one-community" "preferential-attachment"
+2
 
 SLIDER
 4
