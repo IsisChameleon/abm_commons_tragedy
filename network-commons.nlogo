@@ -127,14 +127,18 @@ to setup
   clear-all
   initialize-globals
   setup-patches
-  setup-turtles ;; setup humans
+  setup-turtles
   setup-network
   reset-ticks
 end
 
 to setup-turtles
   set-default-shape turtles "person"
-  create-turtles nb-villagers [
+  ;; the rest of the turtle setup is done in the setup-network
+  ;; by the procedure setup-each-turtle
+end
+
+to setup-each-turtle
     setxy random-xcor random-ycor
     set turtle-hunger MIN-TURTLE-HUNGER
     set turtle-vision MAX-TURTLE-VISION
@@ -142,8 +146,6 @@ to setup-turtles
     set turtle-resource 0
     set-turtle-memory
     set-turtle-color
-  ]
-
 end
 
 to set-turtle-memory
@@ -434,7 +436,7 @@ end
 
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-;;     H   A   R   V   E   S   T
+;;     C  O  N  S  U  M  E
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
 to consume  ;; turtle proc
@@ -570,7 +572,8 @@ to preferential-attachment
 
 
   ask links [die]
-  ;;nw:generate-preferential-attachment turtles links number-of-nodes min-degree [ set color red ]
+  debugging (list "PREFERENTIAL-ATTACHMENT:nb-villagers:" nb-villagers "-min-degree:" min-degree )
+  nw:generate-preferential-attachment turtles links nb-villagers min-degree [ setup-each-turtle ]
 
   ;;crt min-degree + 1 [
    ;; ask one-of turtles [
@@ -765,7 +768,7 @@ nb-villagers
 nb-villagers
 1
 500
-81.0
+41.0
 10
 1
 NIL
@@ -920,7 +923,7 @@ CHOOSER
 network-type
 network-type
 "random_simple" "random_num_nodes" "random_max_links" "random_prob" "one-community" "preferential-attachment" "TEST"
-4
+5
 
 SLIDER
 4
@@ -931,7 +934,7 @@ min-degree
 min-degree
 0
 100
-0.0
+16.0
 1
 1
 NIL
