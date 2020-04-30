@@ -491,8 +491,11 @@ end
 ;;       N  E  T  W  O  R  K  I  N  G
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 to setup-network
-
-  random_wire4
+  if network-type = "random_simple" [random_wire1]
+  if network-type = "random_num_nodes" [random_wire2]
+  if network-type = "random_max_links" [random_wire3]
+  if network-type = "random_prob" [random_wire5]
+  if network-type = "preferential-attachment" [preferential-attachment]
 
 end
 
@@ -530,9 +533,9 @@ to random_wire3 ;; Erdős-Rényi random network.
   ]
 end
 
-to random_wire4 ;; Erdős-Rényi random network with a pair of villagers get a chance to create friendship
+to random_wire5 ;; Erdős-Rényi random network with a pair of villagers get a chance to create friendship
   ;; between them with a specified probability.
-  ask friendships [die]
+  ask links [die]
   ask turtles [
     ask turtles with [ who > [ who ] of myself ] [
       if random-float 1.0 < wiring-probability [
@@ -541,6 +544,30 @@ to random_wire4 ;; Erdős-Rényi random network with a pair of villagers get a c
     ]
   ]
 end
+
+to random_wire4
+  ;;ask links [die]
+  ;;nw:generate-random turtles links number-of-nodes wiring-probability [ set color red ]
+
+end
+
+to preferential-attachment
+  ;;ask links [die]
+  ;;nw:generate-preferential-attachment turtles links number-of-nodes min-degree [ set color red ]
+  ;;crt min-degree + 1 [
+  ;;  create-links-with other turtles
+  ;;]
+  ;;repeat (number-of-nodes - (min-degree + 1)) [
+  ;;  crt 1 [
+  ;;    repeat min-degree [
+  ;;      create-link-with one-of other [ both-ends ] of one-of links
+  ;;    ]
+  ;;  ]
+  ;;]
+end
+
+
+
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;     G L O B A L    R  E  P  O  R  T  E  R  S
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
@@ -630,7 +657,7 @@ percent-best-land
 percent-best-land
 0
 100
-7.0
+12.0
 1
 1
 NIL
@@ -715,30 +742,30 @@ NIL
 HORIZONTAL
 
 SLIDER
-214
-492
-386
-525
+4
+185
+176
+218
 number-of-nodes
 number-of-nodes
 0
 500
-0.0
+51.0
 1
 1
 NIL
 HORIZONTAL
 
 SLIDER
-214
-457
-386
-490
+5
+259
+177
+292
 number-of-links
 number-of-links
 0
 500
-0.0
+68.0
 1
 1
 NIL
@@ -753,7 +780,7 @@ wiring-probability
 wiring-probability
 0
 0.2
-0.1172
+0.05987
 0.00001
 1
 NIL
@@ -791,6 +818,31 @@ count links
 1
 1
 11
+
+CHOOSER
+2
+322
+183
+367
+network-type
+network-type
+"random_simple" "random_num_nodes" "random_max_links" "random_prob" "preferential-attachment"
+0
+
+SLIDER
+6
+222
+178
+255
+min-degree
+min-degree
+0
+100
+1.0
+1
+1
+NIL
+HORIZONTAL
 
 @#$#@#$#@
 ## WHAT IS IT?
