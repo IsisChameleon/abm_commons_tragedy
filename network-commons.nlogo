@@ -899,7 +899,7 @@ CHOOSER
 network-type
 network-type
 "random_simple" "random_num_nodes" "random_max_links" "random_prob" "preferential-attachment"
-1
+0
 
 SLIDER
 4
@@ -982,7 +982,7 @@ NIL
 NIL
 NIL
 NIL
-1
+0
 
 @#$#@#$#@
 ## WHAT IS IT?
