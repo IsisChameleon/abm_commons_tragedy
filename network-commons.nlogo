@@ -491,6 +491,7 @@ end
 ;;       N  E  T  W  O  R  K  I  N  G
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 to setup-network
+  ask links [ die ]
   if network-type = "random_simple" [random_wire1]
   if network-type = "random_num_nodes" [random_wire2]
   if network-type = "random_max_links" [random_wire3]
@@ -566,6 +567,77 @@ to preferential-attachment
   ;;]
 end
 
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;; C E N T R A L I T Y    M E A S U R E S
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+
+to betweenness
+  centrality [ -> nw:betweenness-centrality ]
+end
+
+to eigenvector
+  centrality [ -> nw:eigenvector-centrality ]
+end
+
+to closeness
+  centrality [ -> nw:closeness-centrality ]
+end
+
+; Takes a centrality measure as a reporter task, runs it for all nodes
+; and set labels, sizes and colors of turtles to illustrate result
+to centrality [ measure ]
+  nw:set-context turtles links
+  ask turtles [
+    let _res (runresult measure) ; run the task for the turtle
+    ifelse is-number? _res [
+      set label precision _res 2
+      set size _res ; this will be normalized later
+    ]
+    [ ; if the result is not a number, it is because eigenvector returned false (in the case of disconnected graphs
+      set label _res
+      set size 1
+    ]
+  ]
+  normalize-sizes-and-colors
+end
+
+to normalize-sizes-and-colors
+  if count turtles > 0 [
+    let _sizes sort [ size ] of turtles ; initial sizes in increasing order
+    let _delta last _sizes - first _sizes ; difference between biggest and smallest
+    ifelse _delta = 0 [ ; if they are all the same size
+      ask turtles [ set size 1 ]
+    ]
+    [ ; remap the size to a range between 0.5 and 2.5
+      ask turtles [ set size ((size - first _sizes) / _delta) * 2 + 0.5 ]
+    ]
+    ask turtles [ set color scale-color red size 0 5 ] ; using a higher range max not to get too white...
+  ]
+end
+;; CLUSTERS
+to community-detection
+  nw:set-context turtles links
+  color-clusters nw:louvain-communities
+end
+
+to color-clusters [ clusters ]
+  ; reset all colors
+  ask turtles [ set color gray ]
+  ask links [ set color gray - 2 ]
+  let n length clusters
+  ; Generate a unique hue for each cluster
+  let hues n-values n [ i -> (360 * i / n) ]
+
+  ; loop through the clusters and colors zipped together
+  (foreach clusters hues [ [cluster hue] ->
+    ask cluster [ ; for each node in the cluster
+                  ; give the node the color of its cluster
+      set color hsb hue 100 100
+      ; Color links contained in the cluster slightly darker than the cluster color
+      ask my-links with [ member? other-end cluster ] [ set color hsb hue 100 75 ]
+    ]
+  ])
+end
 
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
@@ -651,7 +723,7 @@ NIL
 SLIDER
 5
 70
-176
+118
 103
 percent-best-land
 percent-best-land
@@ -664,15 +736,15 @@ NIL
 HORIZONTAL
 
 SLIDER
-4
-108
-176
-141
+5
+111
+119
+144
 nb-villagers
 nb-villagers
 1
 500
-51.0
+61.0
 10
 1
 NIL
@@ -744,7 +816,7 @@ HORIZONTAL
 SLIDER
 4
 185
-176
+119
 218
 number-of-nodes
 number-of-nodes
@@ -757,10 +829,10 @@ NIL
 HORIZONTAL
 
 SLIDER
-5
-259
-177
-292
+4
+252
+118
+285
 number-of-links
 number-of-links
 0
@@ -774,7 +846,7 @@ HORIZONTAL
 SLIDER
 4
 146
-176
+119
 179
 wiring-probability
 wiring-probability
@@ -830,10 +902,10 @@ network-type
 0
 
 SLIDER
-6
-222
-178
-255
+4
+219
+119
+252
 min-degree
 min-degree
 0
@@ -843,6 +915,74 @@ min-degree
 1
 NIL
 HORIZONTAL
+
+BUTTON
+124
+70
+204
+103
+NIL
+betweenness
+NIL
+1
+T
+OBSERVER
+NIL
+NIL
+NIL
+NIL
+0
+
+BUTTON
+123
+106
+204
+139
+NIL
+eigenvector
+NIL
+1
+T
+OBSERVER
+NIL
+NIL
+NIL
+NIL
+0
+
+BUTTON
+124
+142
+203
+175
+NIL
+closeness
+NIL
+1
+T
+OBSERVER
+NIL
+NIL
+NIL
+NIL
+0
+
+BUTTON
+3
+287
+128
+320
+NIL
+community-detection
+NIL
+1
+T
+OBSERVER
+NIL
+NIL
+NIL
+NIL
+0
 
 @#$#@#$#@
 ## WHAT IS IT?
@@ -859,7 +999,7 @@ This model starts with initializing global variables (MAX-ON-BEST-PATCH, MAX-HUM
 
   setup-patches
   setup-turtles ;; setup humans
-  ;; setup-network
+  setup-network
 
 At each step villagers move (depending on their strategy), harvest and consume resources, learn or memorize information about the resources and share it with their nearby nodes, and take a decision about keep their strategy or change it.
 
@@ -893,6 +1033,8 @@ Press Go.
 NETWORKS:
 
 Wilensky, U., Rand, W. (2008). NetLogo Random Network model. http://ccl.northwestern.edu/netlogo/models/RandomNetwork. Center for Connected Learning and Computer-Based Modeling, Northwestern Institute on Complex Systems, Northwestern University, Evanston, IL.
+
+Wilensky, U., Rand, W. (2008). NetLogo NW General Examples model.
 
 ## CREDITS AND REFERENCES
 
