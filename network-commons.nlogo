@@ -607,6 +607,11 @@ to closeness ;; for every turtle: is the inverse of the average of it's distance
   centrality [ -> nw:closeness-centrality ]
 end
 
+to weakness ;;
+
+  centrality [ -> nw:weak-component-clusters ]
+end
+
 ; Takes a centrality measure as a reporter task, runs it for all nodes
 ; and set labels, sizes and colors of turtles to illustrate result
 to centrality [ measure ]
@@ -635,13 +640,13 @@ to normalize-sizes-and-colors
     [ ; remap the size to a range between 0.5 and 2.5
       ask turtles [ set size ((size - first _sizes) / _delta) * 2 + 0.5 ]
     ]
-    ask turtles [ set color scale-color red size 0 5 ] ; using a higher range max not to get too white...
+    ask turtles [ set color scale-color red size 0 5 ] ; using a higher range max not to get too white
   ]
 end
 ;; DETECT AND COLOUR CLUSTERS
 to community-detection
   nw:set-context turtles links
-  color-clusters nw:louvain-communities
+  color-clusters nw:louvain-communities ;; detects community structure present in the network maximizing modularity using Louvain method
 end
 
 to color-clusters [ _clusters ]
@@ -684,9 +689,9 @@ to-report max-links ;; Report the maximum number of links that can be added to a
 end
 @#$#@#$#@
 GRAPHICS-WINDOW
-210
+206
 10
-647
+643
 448
 -1
 -1
@@ -846,7 +851,7 @@ number-of-nodes
 number-of-nodes
 0
 500
-140.0
+50.0
 1
 1
 NIL
@@ -861,7 +866,7 @@ number-of-links
 number-of-links
 0
 500
-71.0
+0.0
 1
 1
 NIL
