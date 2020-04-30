@@ -491,20 +491,22 @@ end
 ;;       N  E  T  W  O  R  K  I  N  G
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 to setup-network
-  ask links [ die ]
+  ;; select network type from the chooser
+  ask links [ die ] ;; clear links
   if network-type = "random_simple" [random_wire1]
   if network-type = "random_num_nodes" [random_wire2]
   if network-type = "random_max_links" [random_wire3]
   if network-type = "random_prob" [random_wire5]
-  if network-type = "preferential-attachment" [preferential-attachment]
-
+  if network-type = "one-community" [one-community]
+  if network-type = "preferential-attachment" [preferential-attachment] ;; not working
+  if network-type = "TEST" [random_wire4] ;; just for testing
 end
 
 ;; Not very useful Network. I am not calling this. If you want to try, you can create a button an call this procedure from the interface.
 to random_wire1     ;; Random network. Ask each villager to create a link with another random villager.
   ;; If a villager tries to connect with other villager which is already linked, no new link appears.
   ;; Everyone is connected here (everone who is a villager).
-  ask friendships [die]
+  ask links [die]
   ask turtles [
     create-link-with one-of other turtles
   ]
@@ -514,7 +516,7 @@ end
 to random_wire2  ;; Random network. Ask a random villager to create a link with another random villager.
   ;; If a villager tries to connect with other villager which is already linked, no new link appears.
   ;; Not everyone is connected here (It depends on the number-of-nodes selected on the slider).
-  ask friendships [die]
+  ask links [die]
   repeat number-of-nodes [
    ask one-of turtles [
       create-link-with one-of other turtles
@@ -525,7 +527,7 @@ end
 ;; Not very useful Network. I am not calling this. If you want to try, you can create a button an call this procedure from the interface.
 to random_wire3 ;; Erdős-Rényi random network.
   ;; This type of random network ensures a number of links.
-  ask friendships [die]
+  ask links [die]
   if number-of-links > max-links [ set number-of-links max-links ]
   while [count links < number-of-links ] [
     ask one-of turtles [
@@ -548,19 +550,33 @@ end
 
 to random_wire4
   ;;ask links [die]
-  ;;nw:generate-random turtles links number-of-nodes wiring-probability [ set color red ]
-
+  ;;
+  ask links [die]
+  repeat nb-villagers [
+    nw:generate-random turtles links number-of-nodes wiring-probability [ set color red ]
+    ]
 end
 
-to preferential-attachment
+to one-community
   ;; it works as one community
 
   ask links [die]
-  ;;nw:generate-preferential-attachment turtles links number-of-nodes min-degree [ set color red ]
-  ;;crt min-degree + 1 [
   ask one-of turtles [
     create-links-with other turtles
   ]
+end
+
+to preferential-attachment
+
+
+  ask links [die]
+  ;;nw:generate-preferential-attachment turtles links number-of-nodes min-degree [ set color red ]
+
+  ;;crt min-degree + 1 [
+   ;; ask one-of turtles [
+    ;;  create-link-with one-of other [ both-ends ] of one-of links
+
+
   ;;repeat (number-of-nodes - (min-degree + 1)) [
   ;;  crt 1 [
   ;;    repeat min-degree [
@@ -570,20 +586,21 @@ to preferential-attachment
   ;;]
 end
 
-
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; C E N T R A L I T Y    M E A S U R E S
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
-to betweenness
+to betweenness ;; is the sum of the proportion of shortest paths passing through the current turtle
+  ;; for every other possible pair of turtles
   centrality [ -> nw:betweenness-centrality ]
 end
 
-to eigenvector
+to eigenvector ;; amount of influence a node has on a network (normalized).
   centrality [ -> nw:eigenvector-centrality ]
 end
 
-to closeness
+to closeness ;; for every turtle: is the inverse of the average of it's distances
+  ;; to all other turtles.
   centrality [ -> nw:closeness-centrality ]
 end
 
@@ -592,13 +609,13 @@ end
 to centrality [ measure ]
   nw:set-context turtles links
   ask turtles [
-    let _res (runresult measure) ; run the task for the turtle
-    ifelse is-number? _res [
-      set label precision _res 2
-      set size _res ; this will be normalized later
+    let _result (runresult measure) ; run the task for the turtle
+    ifelse is-number? _result [
+      set label precision _result 2
+      set size _result
     ]
-    [ ; if the result is not a number, it is because eigenvector returned false (in the case of disconnected graphs
-      set label _res
+    [
+      set label _result
       set size 1
     ]
   ]
@@ -618,27 +635,27 @@ to normalize-sizes-and-colors
     ask turtles [ set color scale-color red size 0 5 ] ; using a higher range max not to get too white...
   ]
 end
-;; CLUSTERS
+;; DETECT AND COLOUR CLUSTERS
 to community-detection
   nw:set-context turtles links
   color-clusters nw:louvain-communities
 end
 
-to color-clusters [ clusters ]
-  ; reset all colors
+to color-clusters [ _clusters ]
+  ;; reset the colors
   ask turtles [ set color gray ]
   ask links [ set color gray - 2 ]
-  let n length clusters
-  ; Generate a unique hue for each cluster
-  let hues n-values n [ i -> (360 * i / n) ]
+  let _number length _clusters
+  ;; it generates unique colour for each cluster
+  let _shades n-values _number [ _index -> (360 * _index / _number) ]
 
-  ; loop through the clusters and colors zipped together
-  (foreach clusters hues [ [cluster hue] ->
-    ask cluster [ ; for each node in the cluster
-                  ; give the node the color of its cluster
-      set color hsb hue 100 100
-      ; Color links contained in the cluster slightly darker than the cluster color
-      ask my-links with [ member? other-end cluster ] [ set color hsb hue 100 75 ]
+  ;; loop through the clusters and colors
+  (foreach _clusters _shades [ [_cluster _shade] ->
+    ask _cluster [ ; for each node in the cluster
+  ;; color the turtle with cluster color
+      set color hsb _shade 100 100
+  ;; color cluster links a little darker than the cluster color
+      ask my-links with [ member? other-end _cluster ] [ set color hsb _shade 100 75 ]
     ]
   ])
 end
@@ -841,7 +858,7 @@ number-of-links
 number-of-links
 0
 500
-76.0
+71.0
 1
 1
 NIL
@@ -856,7 +873,7 @@ wiring-probability
 wiring-probability
 0
 0.2
-0.032
+0.0
 0.00001
 1
 NIL
@@ -902,7 +919,7 @@ CHOOSER
 367
 network-type
 network-type
-"random_simple" "random_num_nodes" "random_max_links" "random_prob" "preferential-attachment"
+"random_simple" "random_num_nodes" "random_max_links" "random_prob" "one-community" "preferential-attachment" "TEST"
 4
 
 SLIDER
