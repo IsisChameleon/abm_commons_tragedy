@@ -12,7 +12,7 @@
 
 
 extensions [ rnd table palette nw]
-;; breed [villagers villager] ;; http://ccl.northwestern.edu/netlogo/docs/dict/breed.html
+;;breed [villagers villager] ;; http://ccl.northwestern.edu/netlogo/docs/dict/breed.html
 directed-link-breed [ friendships friendship ] ;; between villagers
 
 globals
@@ -225,7 +225,7 @@ to go
     observe-world
     harvest           ;; for each turtle will update the turtle-resource variable based on what they have harvested
     consume
-    set-turtle-color
+    ;;set-turtle-color
     memorize
     change-strategy
     reset-turtle-variables-after-go
@@ -553,11 +553,14 @@ to random_wire4
 end
 
 to preferential-attachment
-  ;;ask links [die]
+  ;; it works as one community
+
+  ask links [die]
   ;;nw:generate-preferential-attachment turtles links number-of-nodes min-degree [ set color red ]
   ;;crt min-degree + 1 [
-  ;;  create-links-with other turtles
-  ;;]
+  ask one-of turtles [
+    create-links-with other turtles
+  ]
   ;;repeat (number-of-nodes - (min-degree + 1)) [
   ;;  crt 1 [
   ;;    repeat min-degree [
@@ -566,6 +569,7 @@ to preferential-attachment
   ;;  ]
   ;;]
 end
+
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; C E N T R A L I T Y    M E A S U R E S
@@ -744,7 +748,7 @@ nb-villagers
 nb-villagers
 1
 500
-61.0
+81.0
 10
 1
 NIL
@@ -822,7 +826,7 @@ number-of-nodes
 number-of-nodes
 0
 500
-51.0
+140.0
 1
 1
 NIL
@@ -837,7 +841,7 @@ number-of-links
 number-of-links
 0
 500
-68.0
+76.0
 1
 1
 NIL
@@ -852,7 +856,7 @@ wiring-probability
 wiring-probability
 0
 0.2
-0.05987
+0.032
 0.00001
 1
 NIL
@@ -899,7 +903,7 @@ CHOOSER
 network-type
 network-type
 "random_simple" "random_num_nodes" "random_max_links" "random_prob" "preferential-attachment"
-0
+4
 
 SLIDER
 4
@@ -910,7 +914,7 @@ min-degree
 min-degree
 0
 100
-1.0
+0.0
 1
 1
 NIL
