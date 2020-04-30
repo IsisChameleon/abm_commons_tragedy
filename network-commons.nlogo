@@ -742,7 +742,7 @@ nb-villagers
 nb-villagers
 1
 500
-2.0
+111.0
 10
 1
 NIL
