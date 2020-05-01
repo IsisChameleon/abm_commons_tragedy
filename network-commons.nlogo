@@ -495,13 +495,14 @@ end
 to setup-network
   ;; select network type from the chooser
   ask links [ die ] ;; clear links
+  ;;if nb-villagers = 1 [ stop ] ;; all network types require more than 1 villagers to work
   if network-type = "random_simple" [random_wire1]
   if network-type = "random_num_nodes" [random_wire2]
   if network-type = "random_max_links" [random_wire3]
-  if network-type = "random_prob" [random_wire5]
+  if network-type = "random_prob" [random_wire4] ;; requires to set prob > 0 to work
   if network-type = "one-community" [one-community]
-  if network-type = "preferential-attachment" [preferential-attachment] ;; not working
-  if network-type = "TEST" [random_wire4] ;; just for testing
+  if network-type = "preferential-attachment" [preferential-attachment]
+  ;;ask links [hide-link] ;; this is for hidding links
 end
 
 ;; Not very useful Network. I am not calling this. If you want to try, you can create a button an call this procedure from the interface.
@@ -517,9 +518,9 @@ end
 ;; Not very useful Network. I am not calling this. If you want to try, you can create a button an call this procedure from the interface.
 to random_wire2  ;; Random network. Ask a random villager to create a link with another random villager.
   ;; If a villager tries to connect with other villager which is already linked, no new link appears.
-  ;; Not everyone is connected here (It depends on the number-of-nodes selected on the slider).
+  ;; Not everyone is connected here (It depends on the nb-villagers selected on the slider).
   ask links [die]
-  repeat number-of-nodes [
+  repeat nb-villagers [
    ask one-of turtles [
       create-link-with one-of other turtles
     ]
@@ -538,55 +539,21 @@ to random_wire3 ;; Erdős-Rényi random network.
   ]
 end
 
-to random_wire5 ;; Erdős-Rényi random network with a pair of villagers get a chance to create friendship
-  ;; between them with a specified probability.
-  ask links [die]
-  ask turtles [
-    ask turtles with [ who > [ who ] of myself ] [
-      if random-float 1.0 < wiring-probability [
-        create-link-with myself
-      ]
-    ]
-  ]
-end
-
 to random_wire4
-  ;;ask links [die]
-  ;;
   ask links [die]
-  repeat nb-villagers [
-    nw:generate-random turtles links number-of-nodes wiring-probability [ set color red ]
-    ]
+  nw:generate-random turtles links nb-villagers wiring-probability [ setup-each-turtle  ]
 end
 
 to one-community
   ;; it works as one community
-
   ask links [die]
-  ask one-of turtles [
-    create-links-with other turtles
-  ]
+  nw:generate-star turtles links nb-villagers [ setup-each-turtle ]
 end
 
 to preferential-attachment
-
-
   ask links [die]
   debugging (list "PREFERENTIAL-ATTACHMENT:nb-villagers:" nb-villagers "-min-degree:" min-degree )
   nw:generate-preferential-attachment turtles links nb-villagers min-degree [ setup-each-turtle ]
-
-  ;;crt min-degree + 1 [
-   ;; ask one-of turtles [
-    ;;  create-link-with one-of other [ both-ends ] of one-of links
-
-
-  ;;repeat (number-of-nodes - (min-degree + 1)) [
-  ;;  crt 1 [
-  ;;    repeat min-degree [
-  ;;      create-link-with one-of other [ both-ends ] of one-of links
-  ;;    ]
-  ;;  ]
-  ;;]
 end
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
@@ -635,13 +602,13 @@ to normalize-sizes-and-colors
     [ ; remap the size to a range between 0.5 and 2.5
       ask turtles [ set size ((size - first _sizes) / _delta) * 2 + 0.5 ]
     ]
-    ask turtles [ set color scale-color red size 0 5 ] ; using a higher range max not to get too white...
+    ask turtles [ set color scale-color red size 0 5 ] ; using a higher range max not to get too white
   ]
 end
 ;; DETECT AND COLOUR CLUSTERS
 to community-detection
   nw:set-context turtles links
-  color-clusters nw:louvain-communities
+  color-clusters nw:louvain-communities ;; detects community structure present in the network maximizing modularity using Louvain method
 end
 
 to color-clusters [ _clusters ]
@@ -680,13 +647,13 @@ end
 
 to-report max-links ;; Report the maximum number of links that can be added to a random network.
   ;; given an specific number of nodes, with an arbitrary upper bound of 500
-  report min (list (number-of-nodes * (number-of-nodes - 1) / 2) 500)
+  report min (list (nb-villagers * (nb-villagers - 1) / 2) 500)
 end
 @#$#@#$#@
 GRAPHICS-WINDOW
-210
+206
 10
-647
+643
 448
 -1
 -1
@@ -768,7 +735,7 @@ nb-villagers
 nb-villagers
 1
 500
-41.0
+201.0
 10
 1
 NIL
@@ -839,21 +806,6 @@ HORIZONTAL
 
 SLIDER
 4
-185
-119
-218
-number-of-nodes
-number-of-nodes
-0
-500
-140.0
-1
-1
-NIL
-HORIZONTAL
-
-SLIDER
-4
 252
 118
 285
@@ -861,7 +813,7 @@ number-of-links
 number-of-links
 0
 500
-71.0
+207.0
 1
 1
 NIL
@@ -876,7 +828,7 @@ wiring-probability
 wiring-probability
 0
 0.2
-0.0
+0.02
 0.00001
 1
 NIL
@@ -922,8 +874,8 @@ CHOOSER
 367
 network-type
 network-type
-"random_simple" "random_num_nodes" "random_max_links" "random_prob" "one-community" "preferential-attachment" "TEST"
-5
+"random_prob" "one-community" "preferential-attachment"
+2
 
 SLIDER
 4
@@ -934,7 +886,7 @@ min-degree
 min-degree
 0
 100
-16.0
+1.0
 1
 1
 NIL
