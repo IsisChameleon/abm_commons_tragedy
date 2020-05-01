@@ -140,6 +140,7 @@ to setup-turtles
   set-default-shape turtles "person"
   ;; the rest of the turtle setup is done in the setup-network
   ;; by the procedure setup-each-turtle
+  ;;if nb-villagers < 2 [setup-each-turtle]
 end
 
 to setup-each-turtle
@@ -526,7 +527,7 @@ end
 to setup-network
   ;; select network type from the chooser
   ask links [ die ] ;; clear links
-  ;;if nb-villagers = 1 [ stop ] ;; all network types require more than 1 villagers to work
+  if network-type = "no-network" or nb-villagers < 2 [no-network]
   if network-type = "random_simple" [random_wire1]
   if network-type = "random_num_nodes" [random_wire2]
   if network-type = "random_max_links" [random_wire3]
@@ -535,6 +536,12 @@ to setup-network
   if network-type = "preferential-attachment" [preferential-attachment]
   ;;ask links [hide-link] ;; this is for hidding links
 end
+to no-network
+  crt nb-villagers [
+    setup-each-turtle
+  ]
+end
+
 
 ;; Not very useful Network. I am not calling this. If you want to try, you can create a button an call this procedure from the interface.
 to random_wire1     ;; Random network. Ask each villager to create a link with another random villager.
@@ -583,8 +590,10 @@ end
 
 to preferential-attachment
   ask links [die]
+  if nb-villagers = 1 [no-network] ;; If there is 1 or less humans act like no-network
+  if nb-villagers >= 2 [nw:generate-preferential-attachment turtles links nb-villagers min-degree [ setup-each-turtle ]]
   debugging (list "PREFERENTIAL-ATTACHMENT:nb-villagers:" nb-villagers "-min-degree:" min-degree )
-  nw:generate-preferential-attachment turtles links nb-villagers min-degree [ setup-each-turtle ]
+
 end
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
@@ -766,7 +775,7 @@ nb-villagers
 nb-villagers
 2
 500
-422.0
+1.0
 10
 1
 NIL
@@ -859,7 +868,7 @@ wiring-probability
 wiring-probability
 0
 0.2
-0.02
+0.048
 0.00001
 1
 NIL
@@ -905,8 +914,8 @@ CHOOSER
 367
 network-type
 network-type
-"random_prob" "one-community" "preferential-attachment"
-0
+"no-network" "random_prob" "one-community" "preferential-attachment"
+3
 
 SLIDER
 4
