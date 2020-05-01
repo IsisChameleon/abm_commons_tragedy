@@ -1,0 +1,25 @@
+https://stackoverflow.com/questions/26664985/netlogo-finding-out-all-turtles-linked-to-each-other-and-assigning-them-to-a-gr
+
+Out-link-neighbors
+
+ link-neighbors
+
+
+ to go
+    ask turtles [    
+      set neighbours turtle-set turtles in-radius neighbourhood
+      set turtle-dim-similar min-one-of other neighbours [myfunc myself self]
+      create-link-with turtle-dim-similar  
+    ]
+
+   set beasts sort-by [[who] of ?1 < [who] of ?2] turtles 
+   foreach beasts [ 
+       ask ? [ ;; each agent undertakes the list of commands 
+           set closest sort [link-neighbors] of turtle who 
+           print (word "id:" who " ; val1:" value1 " ; val2:" value2 " ; closest:" closest) 
+       ] 
+   ]
+ end
+
+ https://stackoverflow.com/questions/27488185/netlogo-flocking-to-others-in-agentset-as-opposed-to-all-turtles?rq=1
+ 

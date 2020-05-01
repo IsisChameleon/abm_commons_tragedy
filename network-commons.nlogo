@@ -30,6 +30,9 @@ globals
   MIN-TURTLE-HUNGER   ; how many units of resource a human consumes each step to stay well
   MAX-TURTLE-HARVEST  ; maximum that a human can harvest during a tick
   MAX-TURTLE-MEMORY   ; how many items a turtle can remember in a list
+
+  MAX-LINK-STRENGTH   ; maximum strength of the link between 2 turtles
+
   ;; DEBUG-RATE         ; proportion of agents for which the debugging is active  -> MOVED TO A SLIDER FOR NOW
 
   ;; these variables evolve with the simulation
@@ -89,9 +92,9 @@ turtles-own
 
 ]
 
-friendships-own
+links-own
 [
- ;;strength  ;;
+  strength
 ]
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
@@ -112,13 +115,14 @@ end
 
 to initialize-globals
   set MAX-ON-BEST-PATCH 100
-  set MAX-TURTLE-VISION 4
+  set MAX-TURTLE-VISION 8
   set MIN-TURTLE-HUNGER 2
   set MAX-TURTLE-HARVEST 5
   set MAX-TURTLE-MEMORY 5
   set PATCH-MIN-TO-REGROW 0.5  ;; need to leave at least % amount of the max-patch resource for this patch to regrow
   set PATCH-REGROWTH-RATE 0.1  ;; % of max resource on patch that regrows every tick if over the min-to-regrow
   set PATCH-DECAY-RATE 0.2
+  set MAX-LINK-STRENGTH 10     ;;
 
   set DEBUG-RATE 0.05
 end
@@ -291,11 +295,22 @@ to observe-world ;; turtle proc
   set random-visible-patch one-of patches in-radius turtle-vision
   set best-neighboring-patch max-one-of patches at-points [[1 0] [0 1] [0 0] [-1 0] [0 -1]] [ patch-resource ] ;; best patch for harvesting with max-resource
   set random-neighboring-patch one-of patches at-points [[1 0] [0 1] [0 0] [-1 0] [0 -1]] ;; random neighbboring patch
-  set best-visible-turtle one-of turtles in-radius turtle-vision   ;; TO CHANGE WHEN WE HAVE THE NETWORK TO THE TURTLE IN VISION WITH STRONGEST LINK
-  set random-visible-turtle one-of turtles in-radius turtle-vision
+  set best-visible-turtle one-of link-neighbors in-radius turtle-vision   ;; TO CHANGE WHEN WE HAVE THE NETWORK TO THE TURTLE IN VISION WITH STRONGEST LINK
+  set random-visible-turtle one-of link-neighbors in-radius turtle-vision
 
-  debugging (list "OBSERVE-WORLD:best-neighboring-patch=" best-neighboring-patch "OBSERVE-WORLD:best-visible-patch=" best-visible-patch)
+  debugging (list "OBSERVE-WORLD:best-neighboring-patch=" best-neighboring-patch "-best-visible-patch=" best-visible-patch)
+  debugging (list "OBSERVE-WORLD:best-visible-turtle=" best-visible-turtle "-random-visible-turtle=" random-visible-turtle)
 
+end
+
+to-report get-link-strength-with [ a-turtle ] ;; turtle proc, reports the strength of the link between current turtle and another turtle
+  ifelse a-turtle != nobody and
+         link [ who ] of self [ who ] of a-turtle != nobody [
+    debugging( list "GET-LINK-STRENGTH-WITH: a-turtle=" a-turtle "-strength:" [ strength ] of link [ who ] of self [ who ] of a-turtle )
+    report [ strength ] of link [ who ] of self [ who ] of a-turtle
+  ][
+    report 0
+  ]
 end
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;     M   O   V   E
@@ -327,40 +342,49 @@ to move  ;; turtle proc
 end
 
 to-report decide-move
-  ;; look how much resource is available where the turtle is
-  ;; look how much resource in the neighbouring fields
-  ;; look who's around (limited by vision field)
-  ;; check amongst those who has the strongest bond
-  ;; decide on whether to follow a friend
+  ;; This procedure helps the turtle decide whether to stay, move alone or with friend
+  ;; without a friend, probability to stay or move is propertional on the expected yield of resource in each considered patch
+  ;; the yield of resource for a patch is calculated taking into account the turtle harvest strategy, i.e how much a turtle is willing to harvest on the patch
+  ;; with a friend the probability to move with a friend is propertional to the strength of that bond, up to a max of 100% moving with the friend
+  ;; if that friend has the max strength link
+  ;; the probabilities for moving alone or staying are scaled down to "make room" for the moving with friend probability
 
-  ;; ISABELLE : i WILL DO THIS FUNCTION, ASSUME IT RETURNS "move-alone", "move-with-friend", "stay"
-
-
-
-  ;NOT NEEDED let _best_neighbor_patch_resource [ patch-resource ] of best-neighboring-patch
-  ;NOTE NEEDED let _best_visible_patch_resource [ patch-resource ] of best-visible-patch
   let _quantity_harvest_neighbor decide-harvest best-neighboring-patch
   let _quantity_harvest_visible decide-harvest best-visible-patch
   debugging (list "DECIDE-MOVE:_quantity_harvest_neighbor:" _quantity_harvest_neighbor "_quantity_harvest_visible :" _quantity_harvest_visible)
   let _yield_stay _quantity_harvest_neighbor / turtle-harvest        ;; if the turtle stay it will be able to harvest a certain % of max quantity it can carry
                                                                      ;; = quantity that it is happy to harvest taking into account the limits of the patch / max quantity it can carry
   let _yield_move_alone _quantity_harvest_visible / turtle-harvest
+
+  ;; initialize probabilities
   let _prob_move_alone 1
   let _prob_stay 0
   let _prob_move_with_friend  0
 
   debugging (list "DECIDE-MOVE:yield_stay :" _yield_stay "-yield_move_alone :" _yield_move_alone)
 
-  ;;if best-visible-friend is nobody[
-    debugging (list "DECIDE-MOVE:No friends")
-    ;; when there is no friend around the chance to move is proportional to the amount there is to harvest in each case, when you stay or what you see
-    ;; i.e. assuming the amount of resource to collect is the same, the turtle will have equal chances to go or to stay
-    if (_yield_stay + _yield_move_alone) != 0 [
+  ;; when there is no friend around the chance to move is proportional to the amount there is to harvest in each case, when you stay or what you see
+  ;; i.e. assuming the amount of resource to collect is the same, the turtle will have equal chances to go or to stay
+  if (_yield_stay + _yield_move_alone) != 0 [
        set _prob_stay  _yield_stay * ( 1 / (_yield_stay + _yield_move_alone) )
        set _prob_move_alone  _yield_move_alone * ( 1 / (_yield_stay + _yield_move_alone) )
-       set _prob_move_with_friend  0
-    ]
-  ;;]
+  ]
+
+  if best-visible-turtle != nobody [
+    ;; accessing strength of link with best-visible-turtle
+    let _strength get-link-strength-with ( best-visible-turtle )
+
+    ;; probability to move with friend is proportional to link strength with best visible friend
+    let _strength_scaling 1 / MAX-LINK-STRENGTH
+    set _prob_move_with_friend _strength_scaling * _strength
+
+    ;; scale down probabilities for moving  alone or staying to "make room" for move with friend
+    ;; sum of all probabilies need to be = 1
+
+    let _prob_scaling ( 1 - _prob_move_with_friend )
+    set _prob_stay _prob_stay * _prob_scaling
+    set _prob_move_alone _prob_move_alone * _prob_scaling
+  ]
 
   let _actions ["stay" "move-alone" "move-with-friend" ]
   let _probs (list  _prob_stay _prob_move_alone _prob_move_with_friend )
@@ -436,14 +460,21 @@ end
 
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-;;     C  O  N  S  U  M  E
+;;            C   O   N   S   U   M   E             ;;
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
-to consume  ;; turtle proc
+to consume  ;; turtle procedure, turtule consumes resources
+  let _turtle-actual-consume min list turtle-hunger turtle-resource
+  set turtle-resource turtle-resource - _turtle-actual-consume
+  if _turtle-actual-consume < turtle-hunger [
+    get-hungry
+  ]
+  debugging (list "CONSUME: _turtle-actual-consume" _turtle-actual-consume "-turtle-resource=" turtle-resource "-hungry?=" hungry?)
+end
 
-  ;;
-
-
+to get-hungry
+  set hungry? true
+  ;; ask neighboring turtles for food, i.e ask best-visible-friend
 end
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
@@ -720,7 +751,7 @@ percent-best-land
 percent-best-land
 0
 100
-12.0
+6.0
 1
 1
 NIL
@@ -733,9 +764,9 @@ SLIDER
 144
 nb-villagers
 nb-villagers
-1
+2
 500
-201.0
+422.0
 10
 1
 NIL
@@ -785,7 +816,7 @@ SWITCH
 497
 DEBUG
 DEBUG
-1
+0
 1
 -1000
 
