@@ -372,6 +372,7 @@ to-report decide-move
 end
 
 to stay
+  ;; skip moving
 end
 
 to move-with-friend ;; [ friend ]
@@ -388,13 +389,15 @@ end
 
 to move-alone ;; [ patch-to-move-to ]
   ;; move towards the patch-to-move-to
-    move-to best-neighboring-patch
+  debugging (list "MOVE-ALONE:best-neighbouring-patch" best-neighboring-patch)
+  move-to best-neighboring-patch
 end
 
 to move-at-random  ;; turtle proc
   ;; rt random 50
   ;; lt random 50
   ;; fd 1
+  debugging (list "MOVE-AT-RANDOM:random-neighbouring-patch" random-neighboring-patch)
   move-to random-neighboring-patch
 end
 
@@ -442,10 +445,10 @@ end
 
 to consume  ;; turtle procedure, turtule consumes resources
   let _turtle-actual-consume min list turtle-hunger turtle-resource
-  ifelse turtle-resource < turtle-hunger [
-    set hungry? true
-    ;;ask turtle [set color black]
-  ] [set turtle-resource turtle-resource - _turtle-actual-consume]
+  set turtle-resource turtle-resource - _turtle-actual-consume
+  if _turtle-actual-consume < turtle-hunger [
+    set hungry? true]
+  debugging (list "CONSUME: _turtle-actual-consume" _turtle-actual-consume "-turtle-resource=" turtle-resource "-hungry?=" hungry?)
 end
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
@@ -737,7 +740,7 @@ nb-villagers
 nb-villagers
 1
 500
-201.0
+11.0
 10
 1
 NIL
@@ -787,7 +790,7 @@ SWITCH
 497
 DEBUG
 DEBUG
-1
+0
 1
 -1000
 
@@ -800,7 +803,7 @@ DEBUG-RATE
 DEBUG-RATE
 0.01
 1
-0.05
+1.0
 0.01
 1
 NIL
