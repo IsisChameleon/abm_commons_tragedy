@@ -231,7 +231,7 @@ to go
     observe-world
     harvest           ;; for each turtle will update the turtle-resource variable based on what they have harvested
     consume
-    ;;set-turtle-color
+    set-turtle-color
     memorize
     change-strategy
     reset-turtle-variables-after-go
@@ -906,7 +906,7 @@ CHOOSER
 network-type
 network-type
 "random_prob" "one-community" "preferential-attachment"
-2
+0
 
 SLIDER
 4
