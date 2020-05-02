@@ -539,7 +539,7 @@ to setup-network
   if network-type = "one-community" [one-community]
   if network-type = "preferential-attachment" [preferential-attachment]
   ask links [
-    set strength (1 + random 10)
+    set strength (1 + random MAX-LINK-STRENGTH)
     set label strength
     set label-color white
     debugging (list "LINKS-STRENGTH:" strength )
