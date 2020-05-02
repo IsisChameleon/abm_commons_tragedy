@@ -527,7 +527,7 @@ end
 to setup-network
   ;; select network type from the chooser
   ask links [ die ] ;; clear links
-  if network-type = "no-network" or nb-villagers < 2 [no-network]
+  if network-type = "no-network" [no-network]
   if network-type = "random_simple" [random_wire1]
   if network-type = "random_num_nodes" [random_wire2]
   if network-type = "random_max_links" [random_wire3]
