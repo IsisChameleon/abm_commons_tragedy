@@ -13,7 +13,7 @@
 
 extensions [ rnd table palette nw]
 ;;breed [villagers villager] ;; http://ccl.northwestern.edu/netlogo/docs/dict/breed.html
-directed-link-breed [ friendships friendship ] ;; between villagers
+;;directed-link-breed [ friendships friendship ] ;; between villagers
 
 globals
 [
@@ -94,7 +94,7 @@ turtles-own
 
 links-own
 [
-  strength
+  strength          ; integer number between 1 and 10
 ]
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
@@ -140,6 +140,7 @@ to setup-turtles
   set-default-shape turtles "person"
   ;; the rest of the turtle setup is done in the setup-network
   ;; by the procedure setup-each-turtle
+  ;;if nb-villagers < 2 [setup-each-turtle]
 end
 
 to setup-each-turtle
@@ -231,7 +232,7 @@ to go
     observe-world
     harvest           ;; for each turtle will update the turtle-resource variable based on what they have harvested
     consume
-    ;;set-turtle-color
+    set-turtle-color
     memorize
     change-strategy
     reset-turtle-variables-after-go
@@ -525,22 +526,34 @@ end
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 to setup-network
   ;; select network type from the chooser
-  ask links [ die ] ;; clear links
-  ;;if nb-villagers = 1 [ stop ] ;; all network types require more than 1 villagers to work
+  clear-links ;; clear links
+  if network-type = "no-network" [no-network]
   if network-type = "random_simple" [random_wire1]
   if network-type = "random_num_nodes" [random_wire2]
   if network-type = "random_max_links" [random_wire3]
   if network-type = "random_prob" [random_wire4] ;; requires to set prob > 0 to work
   if network-type = "one-community" [one-community]
   if network-type = "preferential-attachment" [preferential-attachment]
+  ask links [
+    set strength (1 + random 10)
+    set label strength
+    set label-color white
+    debugging (list "LINKS-STRENGTH:" strength )
+  ]
   ;;ask links [hide-link] ;; this is for hidding links
 end
+to no-network
+  crt nb-villagers [
+    setup-each-turtle
+  ]
+end
+
 
 ;; Not very useful Network. I am not calling this. If you want to try, you can create a button an call this procedure from the interface.
 to random_wire1     ;; Random network. Ask each villager to create a link with another random villager.
   ;; If a villager tries to connect with other villager which is already linked, no new link appears.
   ;; Everyone is connected here (everone who is a villager).
-  ask links [die]
+  no-network
   ask turtles [
     create-link-with one-of other turtles
   ]
@@ -550,7 +563,6 @@ end
 to random_wire2  ;; Random network. Ask a random villager to create a link with another random villager.
   ;; If a villager tries to connect with other villager which is already linked, no new link appears.
   ;; Not everyone is connected here (It depends on the nb-villagers selected on the slider).
-  ask links [die]
   repeat nb-villagers [
    ask one-of turtles [
       create-link-with one-of other turtles
@@ -561,7 +573,6 @@ end
 ;; Not very useful Network. I am not calling this. If you want to try, you can create a button an call this procedure from the interface.
 to random_wire3 ;; Erdős-Rényi random network.
   ;; This type of random network ensures a number of links.
-  ask links [die]
   if number-of-links > max-links [ set number-of-links max-links ]
   while [count links < number-of-links ] [
     ask one-of turtles [
@@ -577,14 +588,14 @@ end
 
 to one-community
   ;; it works as one community
-  ask links [die]
   nw:generate-star turtles links nb-villagers [ setup-each-turtle ]
 end
 
 to preferential-attachment
-  ask links [die]
+  if nb-villagers = 1 [no-network] ;; If there is 1 or less humans act like no-network
+  if nb-villagers >= 2 [nw:generate-preferential-attachment turtles links nb-villagers min-degree [ setup-each-turtle ]]
   debugging (list "PREFERENTIAL-ATTACHMENT:nb-villagers:" nb-villagers "-min-degree:" min-degree )
-  nw:generate-preferential-attachment turtles links nb-villagers min-degree [ setup-each-turtle ]
+
 end
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
@@ -766,7 +777,7 @@ nb-villagers
 nb-villagers
 2
 500
-422.0
+10.0
 10
 1
 NIL
@@ -816,7 +827,7 @@ SWITCH
 497
 DEBUG
 DEBUG
-0
+1
 1
 -1000
 
@@ -859,7 +870,7 @@ wiring-probability
 wiring-probability
 0
 0.2
-0.02
+0.048
 0.00001
 1
 NIL
@@ -905,8 +916,8 @@ CHOOSER
 367
 network-type
 network-type
-"random_prob" "one-community" "preferential-attachment"
-2
+"no-network" "random_prob" "one-community" "preferential-attachment"
+3
 
 SLIDER
 4
@@ -916,8 +927,8 @@ SLIDER
 min-degree
 min-degree
 0
-100
-1.0
+4
+2.0
 1
 1
 NIL
