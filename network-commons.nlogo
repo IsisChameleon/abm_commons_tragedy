@@ -539,8 +539,8 @@ to setup-network
   if network-type = "one-community" [one-community]
   if network-type = "preferential-attachment" [preferential-attachment]
   ask links [
-    set strength (1 + random 10)
-    set label strength
+    set strength (1 + random-normal (MAX-LINK-STRENGTH / 2) 1)
+    set label strength ;; if you don't want to see the strength value on every link please comment this line
     set label-color white
     debugging (list "LINKS-STRENGTH:" strength )
   ]
@@ -597,9 +597,13 @@ end
 
 to preferential-attachment
   if nb-villagers = 1 [no-network] ;; If there is 1 or less humans act like no-network
+  if nb-villagers <= min-degree [
+    user-message "nb-villagers should be bigger than min-degree!"
+    stop
+  ]
+
   if nb-villagers >= 2 [nw:generate-preferential-attachment turtles links nb-villagers min-degree [ setup-each-turtle ]]
   debugging (list "PREFERENTIAL-ATTACHMENT:nb-villagers:" nb-villagers "-min-degree:" min-degree )
-
 end
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
@@ -831,7 +835,7 @@ SWITCH
 497
 DEBUG
 DEBUG
-0
+1
 1
 -1000
 
@@ -859,7 +863,7 @@ number-of-links
 number-of-links
 0
 500
-207.0
+72.0
 1
 1
 NIL
@@ -874,7 +878,7 @@ wiring-probability
 wiring-probability
 0
 0.2
-0.048
+0.166
 0.00001
 1
 NIL
@@ -931,7 +935,7 @@ SLIDER
 min-degree
 min-degree
 0
-4
+10
 2.0
 1
 1
