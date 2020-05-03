@@ -539,7 +539,7 @@ to setup-network
   if network-type = "one-community" [one-community]
   if network-type = "preferential-attachment" [preferential-attachment]
   ask links [
-    set strength (1 + random MAX-LINK-STRENGTH)
+    set strength (1 + random-normal (MAX-LINK-STRENGTH / 2) 1)
     set label strength
     set label-color white
     debugging (list "LINKS-STRENGTH:" strength )
@@ -695,6 +695,7 @@ to-report max-links ;; Report the maximum number of links that can be added to a
   ;; given an specific number of nodes, with an arbitrary upper bound of 500
   report min (list (nb-villagers * (nb-villagers - 1) / 2) 500)
 end
+
 @#$#@#$#@
 GRAPHICS-WINDOW
 206
@@ -799,10 +800,14 @@ nb-villagers
 2
 500
 <<<<<<< HEAD
+<<<<<<< HEAD
 10.0
 =======
 11.0
 >>>>>>> a liitle work on move
+=======
+22.0
+>>>>>>> 4fdcec6... random-normal strength
 10
 1
 NIL
@@ -852,7 +857,7 @@ SWITCH
 497
 DEBUG
 DEBUG
-0
+1
 1
 -1000
 
@@ -880,7 +885,7 @@ number-of-links
 number-of-links
 0
 500
-207.0
+72.0
 1
 1
 NIL
@@ -895,7 +900,7 @@ wiring-probability
 wiring-probability
 0
 0.2
-0.048
+0.166
 0.00001
 1
 NIL
