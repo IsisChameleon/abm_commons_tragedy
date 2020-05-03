@@ -1,5 +1,5 @@
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-;;     G  U  I  D  E  L  I  N  E  S
+;;           G  U  I  D  E  L  I  N  E  S           ;;
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;  globals in uppercase = constants e.g. MAX-ON-BEST-PATCH
 ;;  variables in a procedures that start with _ ==> local variables only used in that procedure
@@ -66,6 +66,7 @@ turtles-own
   turtle-harvest           ; maximum that this turtle can harvest during a tick
   turtle-memory-size            ; size of a turtle's memory
 
+
   ;; patch characteristics that change over time
   turtle-resource   ; the amount of resource that the turtle privately owns, it adds to it after harvesting
   turtle-memory            ; turtle's memory
@@ -86,9 +87,9 @@ turtles-own
   random-visible-patch
   random-neighboring-patch
   random-visible-turtle
-  best-visible-patch    ;; identify 1 patch within the vision that has the max resource (for move decision)
+  best-visible-patch     ;; identify 1 patch within the vision that has the max resource (for move decision)
   best-neighboring-patch ;; identify 1 patch just neighbor that has the max quantity of resource (for harvesting)
-  best-visible-turtle  ;; identify 1 turtle or None (with max link strength)
+  best-visible-turtle    ;; identify 1 turtle or None (with max link strength)
 
 ]
 
@@ -98,7 +99,7 @@ links-own
 ]
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-;;     D   E   B   U   G
+;;                D   E   B   U   G                 ;;
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 to debugging [ list-values ]
   if DEBUG = True [
@@ -110,7 +111,7 @@ to debugging [ list-values ]
 end
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-;;     S   E   T   U   P
+;;                S   E   T   U   P                 ;;
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
 to initialize-globals
@@ -170,8 +171,8 @@ end
 to setup-patches-test
   ;; used to test the counters etc...
     ask patches [
-     set patch-resource 1  ;; round resource levels to whole numbers
-     set patch-max-resource 0      ;; initial resource level is also maximum
+     set patch-resource 1        ;; round resource levels to whole numbers
+     set patch-max-resource 0    ;; initial resource level is also maximum
      set-patch-color
   ]
 end
@@ -210,7 +211,7 @@ to setup-patches
   ]
   ask patches [
      set patch-resource floor patch-resource   ;; round resource levels to whole numbers
-     set patch-max-resource patch-resource      ;; initial resource level is also maximum
+     set patch-max-resource patch-resource     ;; initial resource level is also maximum
      set-patch-color
      set depleted? false
   ]
@@ -222,7 +223,7 @@ to set-patch-color ;; patch proc
 end
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-;;     G   O      P   R   O   C
+;;   G   O      P   R   O   C   E   D   U   R   E   ;;
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
 to go
@@ -286,7 +287,7 @@ to reset-turtle-variables-after-go ;; turtle proc
 end
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-;;     O   B  S  E  R  V  E     W  O  R  L  D
+;;     O   B  S  E  R  V  E     W  O  R  L  D       ;;
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
 
@@ -314,7 +315,7 @@ to-report get-link-strength-with [ a-turtle ] ;; turtle proc, reports the streng
   ]
 end
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-;;     M   O   V   E
+;;                  M   O   V   E                   ;;
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
 to move  ;; turtle proc
@@ -396,6 +397,7 @@ to-report decide-move
 end
 
 to stay
+  ;; skip moving
 end
 
 to move-with-friend ;; [ friend ]
@@ -412,18 +414,20 @@ end
 
 to move-alone ;; [ patch-to-move-to ]
   ;; move towards the patch-to-move-to
-    move-to best-neighboring-patch
+  debugging (list "MOVE-ALONE:best-neighbouring-patch" best-neighboring-patch)
+  move-to best-neighboring-patch
 end
 
 to move-at-random  ;; turtle proc
   ;; rt random 50
   ;; lt random 50
   ;; fd 1
+  debugging (list "MOVE-AT-RANDOM:random-neighbouring-patch" random-neighboring-patch)
   move-to random-neighboring-patch
 end
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-;;     H   A   R   V   E   S   T
+;;            H   A   R   V   E   S   T             ;;
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 to-report decide-harvest [ a-patch ]  ;; turtle proc
   let _decide-harvest turtle-harvest  ;;; TEMPORARY :this needs ot be replaced by a more elaborate decision depending on patch
@@ -479,7 +483,7 @@ to get-hungry
 end
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-;;    M E M O R I Z E & S T R A T E G Y
+;;      M E M O R I Z E   &   S T R A T E G Y       ;;
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
 to memorize ;; turtle proc
@@ -674,7 +678,7 @@ end
 
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-;;     G L O B A L    R  E  P  O  R  T  E  R  S
+;;     G L O B A L    R  E  P  O  R  T  E  R  S     ;;
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
 to-report total-resource-reporter
@@ -762,7 +766,24 @@ percent-best-land
 percent-best-land
 0
 100
+<<<<<<< HEAD
+<<<<<<< HEAD
 6.0
+=======
+=======
+>>>>>>> initial coding of 'to consume'
+<<<<<<< HEAD
+22.0
+=======
+56.0
+>>>>>>> i have done some minor changes
+<<<<<<< HEAD
+>>>>>>> i have done some minor changes
+=======
+=======
+22.0
+>>>>>>> initial coding of 'to consume'
+>>>>>>> initial coding of 'to consume'
 1
 1
 NIL
@@ -777,7 +798,11 @@ nb-villagers
 nb-villagers
 2
 500
+<<<<<<< HEAD
 10.0
+=======
+11.0
+>>>>>>> a liitle work on move
 10
 1
 NIL
@@ -827,7 +852,7 @@ SWITCH
 497
 DEBUG
 DEBUG
-1
+0
 1
 -1000
 
@@ -840,7 +865,7 @@ DEBUG-RATE
 DEBUG-RATE
 0.01
 1
-0.05
+1.0
 0.01
 1
 NIL
