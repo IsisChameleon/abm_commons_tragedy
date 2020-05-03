@@ -770,25 +770,8 @@ percent-best-land
 percent-best-land
 0
 100
-<<<<<<< HEAD
-<<<<<<< HEAD
 6.0
-=======
-=======
->>>>>>> initial coding of 'to consume'
-<<<<<<< HEAD
 22.0
-=======
-56.0
->>>>>>> i have done some minor changes
-<<<<<<< HEAD
->>>>>>> i have done some minor changes
-=======
-=======
-22.0
->>>>>>> initial coding of 'to consume'
->>>>>>> initial coding of 'to consume'
-1
 1
 NIL
 HORIZONTAL
@@ -800,9 +783,9 @@ SLIDER
 144
 nb-villagers
 nb-villagers
-1
+2
 500
-422.0
+10.0
 10
 1
 NIL
