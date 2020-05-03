@@ -540,7 +540,7 @@ to setup-network
   if network-type = "preferential-attachment" [preferential-attachment]
   ask links [
     set strength (1 + random-normal (MAX-LINK-STRENGTH / 2) 1)
-    set label strength
+    set label strength ;; if you don't want to see the strength value on every link please comment this line
     set label-color white
     debugging (list "LINKS-STRENGTH:" strength )
   ]
@@ -695,7 +695,6 @@ to-report max-links ;; Report the maximum number of links that can be added to a
   ;; given an specific number of nodes, with an arbitrary upper bound of 500
   report min (list (nb-villagers * (nb-villagers - 1) / 2) 500)
 end
-
 @#$#@#$#@
 GRAPHICS-WINDOW
 206
