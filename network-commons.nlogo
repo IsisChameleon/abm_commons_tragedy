@@ -597,9 +597,13 @@ end
 
 to preferential-attachment
   if nb-villagers = 1 [no-network] ;; If there is 1 or less humans act like no-network
+  if nb-villagers <= min-degree [
+    user-message "nb-villagers should be bigger than min-degree!"
+    stop
+  ]
+
   if nb-villagers >= 2 [nw:generate-preferential-attachment turtles links nb-villagers min-degree [ setup-each-turtle ]]
   debugging (list "PREFERENTIAL-ATTACHMENT:nb-villagers:" nb-villagers "-min-degree:" min-degree )
-
 end
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
@@ -796,17 +800,9 @@ SLIDER
 144
 nb-villagers
 nb-villagers
-2
+1
 500
-<<<<<<< HEAD
-<<<<<<< HEAD
-10.0
-=======
-11.0
->>>>>>> a liitle work on move
-=======
-22.0
->>>>>>> 4fdcec6... random-normal strength
+422.0
 10
 1
 NIL
@@ -956,7 +952,7 @@ SLIDER
 min-degree
 min-degree
 0
-4
+10
 2.0
 1
 1
