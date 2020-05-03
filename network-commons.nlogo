@@ -766,25 +766,8 @@ percent-best-land
 percent-best-land
 0
 100
-<<<<<<< HEAD
-<<<<<<< HEAD
 6.0
-=======
-=======
->>>>>>> initial coding of 'to consume'
-<<<<<<< HEAD
 22.0
-=======
-56.0
->>>>>>> i have done some minor changes
-<<<<<<< HEAD
->>>>>>> i have done some minor changes
-=======
-=======
-22.0
->>>>>>> initial coding of 'to consume'
->>>>>>> initial coding of 'to consume'
-1
 1
 NIL
 HORIZONTAL
@@ -798,11 +781,7 @@ nb-villagers
 nb-villagers
 2
 500
-<<<<<<< HEAD
 10.0
-=======
-11.0
->>>>>>> a liitle work on move
 10
 1
 NIL
