@@ -9,6 +9,7 @@
 ;;  local variables ==> _global
 ;; Useful doco:
 ;; on selecting an action based on a probability : https://stackoverflow.com/questions/41901313/netlogo-assign-variable-using-probabilities/41902311#41902311
+;; on coding to avoid collision between turtles : Flocking model by Wilensky on netlogo model library
 
 
 extensions [ rnd table palette nw]
@@ -25,6 +26,9 @@ globals
   PATCH-MIN-TO-REGROW ; need to leave at least % amount of the max-patch resource for this patch to regrow
   PATCH-REGROWTH-RATE ; % of max resource on patch that regrows every tick if over the min-to-regrow
   PATCH-DECAY-RATE    ;
+
+  MIN-TURTLE-DISTANCE ; minimum patches a turtle stays away from others
+  MAX-SEPARATE-TURN   ; max-turn in degrees to avoid collision
 
   MAX-TURTLE-VISION   ; how many patches ahead a human can see
   MIN-TURTLE-HUNGER   ; how many units of resource a human consumes each step to stay well
@@ -90,7 +94,7 @@ turtles-own
   best-visible-patch     ;; identify 1 patch within the vision that has the max resource (for move decision)
   best-neighboring-patch ;; identify 1 patch just neighbor that has the max quantity of resource (for harvesting)
   best-visible-turtle    ;; identify 1 turtle or None (with max link strength)
-
+  nearest-turtle         ;; neighbouring turtle
 ]
 
 links-own
@@ -123,6 +127,8 @@ to initialize-globals
   set PATCH-MIN-TO-REGROW 0.5  ;; need to leave at least % amount of the max-patch resource for this patch to regrow
   set PATCH-REGROWTH-RATE 0.1  ;; % of max resource on patch that regrows every tick if over the min-to-regrow
   set PATCH-DECAY-RATE 0.2
+  set MIN-TURTLE-DISTANCE 1
+  set MAX-SEPARATE-TURN 180
   set MAX-LINK-STRENGTH 10     ;;
 
   set DEBUG-RATE 0.05
@@ -326,21 +332,23 @@ to move  ;; turtle proc
   ;; _decide reporter variable is a string which will contain one of those values : "move-alone", "move-with-friend", "stay"
 
   let _decision decide-move
+  set nearest-turtle min-one-of turtles [distance myself]
+
   if ( _decision = "stay" )[
     stay
-  ]
+    ]
   if (_decision = "move-with-friend")[
     move-with-friend ;; [ turtle ]
     set has-moved? true
-  ]
+    ]
   if (_decision = "move-alone")[
     move-alone ;; [ patch ]
     set has-moved? true
-  ]
+    ]
   if (_decision = "random")[
     move-at-random
     set has-moved? true
-  ]
+    ]
 end
 
 to-report decide-move
@@ -396,6 +404,7 @@ to-report decide-move
   report _decision
 end
 
+
 to stay
   ;; skip moving
 end
@@ -410,12 +419,16 @@ to move-with-friend ;; [ friend ]
   ][
     move-alone
   ]
+  if distance nearest-turtle < MIN-TURTLE-DISTANCE
+        [ separate ]
 end
 
 to move-alone ;; [ patch-to-move-to ]
   ;; move towards the patch-to-move-to
   debugging (list "MOVE-ALONE:best-neighbouring-patch" best-neighboring-patch)
   move-to best-neighboring-patch
+  if distance nearest-turtle < MIN-TURTLE-DISTANCE
+        [ separate ]
 end
 
 to move-at-random  ;; turtle proc
@@ -426,6 +439,23 @@ to move-at-random  ;; turtle proc
   move-to random-neighboring-patch
 end
 
+to separate  ;; [avoid collision]
+  turn-away ([heading] of nearest-turtle) MAX-SEPARATE-TURN
+end
+
+to turn-away [new-heading max-turn]  ;; turtle procedure
+  turn-at-most (subtract-headings heading new-heading) max-turn
+end
+
+;; turn right by "turn" degrees (or left if "turn" is negative),
+;; but never turn more than "max-turn" degrees
+to turn-at-most [turn max-turn]  ;; turtle procedure
+  ifelse abs turn > max-turn
+    [ ifelse turn > 0
+        [ rt max-turn ]
+        [ lt max-turn ] ]
+    [ rt turn ]
+end
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;            H   A   R   V   E   S   T             ;;
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
@@ -844,7 +874,7 @@ DEBUG-RATE
 DEBUG-RATE
 0.01
 1
-1.0
+0.05
 0.01
 1
 NIL
@@ -1061,6 +1091,8 @@ Wilensky, U., Rand, W. (2008). NetLogo NW General Examples model.
 ## CREDITS AND REFERENCES
 
 (a reference to the model's URL on the web if it has one, as well as any other necessary credits, citations, and links)
+
+Wilensky, U. (1998). NetLogo Flocking model. http://ccl.northwestern.edu/netlogo/models/Flocking. Center for Connected Learning and Computer-Based Modeling, Northwestern University, Evanston, IL.
 
 ## ASSUMPTIONS
 
