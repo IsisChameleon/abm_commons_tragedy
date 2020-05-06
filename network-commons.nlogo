@@ -71,9 +71,10 @@ turtles-own
   turtle-harvest           ; maximum that this turtle can harvest during a tick
   turtle-memory-size            ; size of a turtle's memory
 
-  ;; patch characteristics that change over time
-  turtle-resource   ; the amount of resource that the turtle privately owns, it adds to it after harvesting
-  turtle-memory            ; turtle's memory
+  ;; turtles characteristics that change over time
+  turtle-resource                 ; the amount of resource that the turtle privately owns, it adds to it after harvesting
+  turtle-memory                   ; turtle's memory
+  turtle-recommended-pct-harvest  ;
   harvest-knowledge  ; knowledge they use for harvesting
                      ; list element 0 :  known-best-patch or quantity of resource on the best patch the turtle knows
                      ; list element 1 :  % of the best quantity they know that they will leave on patch
@@ -286,9 +287,25 @@ to regrow ;; patch proc
   ]
 end
 
+to regrow-no-depleted ;; patch proc
+  ;; only regrow if less than the max of resources AND it's not depleted
+
+  if ( patch-resource < patch-max-resource and  patch-resource > 0)[
+
+    let _patch-resource-old patch-resource
+    set patch-resource patch-resource + regrowth-rate * patch-max-resource
+    set patch-resource min list patch-resource patch-max-resource
+
+    debugging  (list "REGROW: patch resource : " _patch-resource-old " - patch-max-resource : "
+      patch-max-resource " - regrowth rate : " regrowth-rate " - new patch resource : " patch-resource )
+
+    set-patch-color
+  ]
+end
+
 to reset-turtle-variables-after-go ;; turtle proc
-    set has-moved? false
-    set hungry? false
+    ;; set has-moved? false
+    ;; set hungry? false
 end
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
@@ -302,7 +319,7 @@ to observe-world ;; turtle proc
   set random-visible-patch one-of patches in-radius turtle-vision
   set best-neighboring-patch max-one-of patches at-points [[1 0] [0 1] [0 0] [-1 0] [0 -1]] [ patch-resource ] ;; best patch for harvesting with max-resource
   set random-neighboring-patch one-of patches at-points [[1 0] [0 1] [0 0] [-1 0] [0 -1]] ;; random neighbboring patch
-  set best-visible-turtle one-of link-neighbors in-radius turtle-vision
+  set best-visible-turtle max-one-of turtles in-radius turtle-vision  [ turtle-resource ] ;;
   set random-visible-turtle one-of link-neighbors in-radius turtle-vision
 
   debugging (list "OBSERVE-WORLD:best-neighboring-patch=" best-neighboring-patch "-best-visible-patch=" best-visible-patch)
@@ -445,7 +462,7 @@ end
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;     H   A   R   V   E   S   T
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-to-report decide-harvest [ a-patch ]  ;; turtle proc
+to-report decide-harvest-2 [ a-patch ]  ;; turtle proc
   ;; turtle will check state of the patch based on her memory and the memory of her linked neighbors
   ;; get-patch-variation returns a list of values
   ;; (list 0: _decrease? 1: _depleted-maybe? 2:_percent-variation 3:_total-variation _4:group-max 5:_group-min )
@@ -471,6 +488,29 @@ to-report decide-harvest [ a-patch ]  ;; turtle proc
 
   debugging (list "DECIDE-HARVEST:_decision " _decision "_possible-harvest:" _possible-harvest )
   report _decision
+end
+
+to-report decide-harvest-sustainable [ a-patch ]  ;; turtle proc
+  ;; turtle will check state of the patch based on her memory and the memory of her linked neighbors
+  ;; get-patch-variation returns a list of values
+  ;; (list 0: _decrease? 1: _depleted-maybe? 2:_percent-variation 3:_total-variation _4:group-max 5:_group-min )
+  ;; position in list begins at 0
+
+  let _patch-max-ever [ patch-max-resource ] of a-patch                         ;; maximum of resource possible on this patch
+  let _patch-min-or-depleted [ min-to-regrow * patch-max-resource ] of a-patch  ;; minimum of resource that needs to be left for that patch to regrow
+  let _patch-current [ patch-resource ] of a-patch                              ;; current amount of resource on the patch
+  let _patch-max-to-harvest min list _patch-current turtle-harvest                   ;; what's the maxium the turtle can harvest on this patch
+  let _patch-safe-to-harvest max list 0 _patch-current - _patch-min-or-depleted      ;; what is a safe value to harvest for not depleting patch
+  let _turtle-safe-to-harvest turtle-hunger                                     ;; if each turtle consumes only what it needs to eat, the thing should be sustainable
+
+  let _quantity-harvested turtle-hunger
+
+  debugging (list "DECIDE-HARVEST:_decision " _quantity-harvested )
+  report _quantity-harvested
+end
+
+to-report decide-harvest [ a-patch ]
+  report decide-harvest-sustainable a-patch
 end
 
 
@@ -511,8 +551,10 @@ end
 to consume  ;; turtle procedure, turtule consumes resources
   let _turtle-actual-consume min list turtle-hunger turtle-resource
   set turtle-resource turtle-resource - _turtle-actual-consume
-  if _turtle-actual-consume < turtle-hunger [
+  ifelse _turtle-actual-consume < turtle-hunger [
     get-hungry
+  ][
+    set hungry? false
   ]
   debugging (list "CONSUME: _turtle-actual-consume" _turtle-actual-consume "-turtle-resource=" turtle-resource "-hungry?=" hungry?)
 end
@@ -793,6 +835,10 @@ end
 to-report max-links ;; Report the maximum number of links that can be added to a random network.
   ;; given an specific number of nodes, with an arbitrary upper bound of 500
   report min (list (nb-villagers * (nb-villagers - 1) / 2) 500)
+end
+
+to-report number-of-hungry-turtles
+  report count turtles with [ hungry? = true ]
 end
 @#$#@#$#@
 GRAPHICS-WINDOW
@@ -1104,6 +1150,24 @@ NIL
 NIL
 NIL
 0
+
+PLOT
+738
+519
+938
+669
+Hungry turtles
+#HungryTurtles
+Time
+0.0
+10.0
+0.0
+10.0
+true
+true
+"" ""
+PENS
+"default" 1.0 0 -16777216 true "" "plot number-of-hungry-turtles"
 
 @#$#@#$#@
 ## WHAT IS IT?
