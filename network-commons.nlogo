@@ -9,6 +9,7 @@
 ;;  local variables ==> _global
 ;; Useful doco:
 ;; on selecting an action based on a probability : https://stackoverflow.com/questions/41901313/netlogo-assign-variable-using-probabilities/41902311#41902311
+;; on coding to detect overlapping of turtles : GasLab Circular Particles model by Wilensky on netlogo model library
 
 
 extensions [ rnd table palette nw]
@@ -25,6 +26,8 @@ globals
   PATCH-MIN-TO-REGROW ; need to leave at least % amount of the max-patch resource for this patch to regrow
   PATCH-REGROWTH-RATE ; % of max resource on patch that regrows every tick if over the min-to-regrow
   PATCH-DECAY-RATE    ;
+
+  MIN-TURTLE-DISTANCE ; minimum patches a turtle has to stay away from others
 
   MAX-TURTLE-VISION   ; how many patches ahead a human can see
   MIN-TURTLE-HUNGER   ; how many units of resource a human consumes each step to stay well
@@ -90,7 +93,6 @@ turtles-own
   best-visible-patch     ;; identify 1 patch within the vision that has the max resource (for move decision)
   best-neighboring-patch ;; identify 1 patch just neighbor that has the max quantity of resource (for harvesting)
   best-visible-turtle    ;; identify 1 turtle or None (with max link strength)
-
 ]
 
 links-own
@@ -123,6 +125,7 @@ to initialize-globals
   set PATCH-MIN-TO-REGROW 0.5  ;; need to leave at least % amount of the max-patch resource for this patch to regrow
   set PATCH-REGROWTH-RATE 0.1  ;; % of max resource on patch that regrows every tick if over the min-to-regrow
   set PATCH-DECAY-RATE 0.2
+  set MIN-TURTLE-DISTANCE 1    ;; one turtle per patch
   set MAX-LINK-STRENGTH 10     ;;
 
   set DEBUG-RATE 0.05
@@ -297,7 +300,7 @@ to observe-world ;; turtle proc
   set random-visible-patch one-of patches in-radius turtle-vision
   set best-neighboring-patch max-one-of patches at-points [[1 0] [0 1] [0 0] [-1 0] [0 -1]] [ patch-resource ] ;; best patch for harvesting with max-resource
   set random-neighboring-patch one-of patches at-points [[1 0] [0 1] [0 0] [-1 0] [0 -1]] ;; random neighbboring patch
-  set best-visible-turtle one-of link-neighbors in-radius turtle-vision   ;; TO CHANGE WHEN WE HAVE THE NETWORK TO THE TURTLE IN VISION WITH STRONGEST LINK
+  set best-visible-turtle one-of link-neighbors in-radius turtle-vision
   set random-visible-turtle one-of link-neighbors in-radius turtle-vision
 
   debugging (list "OBSERVE-WORLD:best-neighboring-patch=" best-neighboring-patch "-best-visible-patch=" best-visible-patch)
@@ -326,21 +329,23 @@ to move  ;; turtle proc
   ;; _decide reporter variable is a string which will contain one of those values : "move-alone", "move-with-friend", "stay"
 
   let _decision decide-move
+
+
   if ( _decision = "stay" )[
     stay
-  ]
+    ]
   if (_decision = "move-with-friend")[
     move-with-friend ;; [ turtle ]
     set has-moved? true
-  ]
+    ]
   if (_decision = "move-alone")[
     move-alone ;; [ patch ]
     set has-moved? true
-  ]
+    ]
   if (_decision = "random")[
     move-at-random
     set has-moved? true
-  ]
+    ]
 end
 
 to-report decide-move
@@ -396,6 +401,7 @@ to-report decide-move
   report _decision
 end
 
+
 to stay
   ;; skip moving
 end
@@ -407,6 +413,7 @@ to move-with-friend ;; [ friend ]
   [
     face best-visible-turtle
     fd 1
+    while [detect-overlapping] [reposition]
   ][
     move-alone
   ]
@@ -414,18 +421,26 @@ end
 
 to move-alone ;; [ patch-to-move-to ]
   ;; move towards the patch-to-move-to
-  debugging (list "MOVE-ALONE:best-neighbouring-patch" best-neighboring-patch)
-  move-to best-neighboring-patch
+  debugging (list "MOVE-ALONE:best-visible-patch" best-visible-patch)
+  face best-visible-patch
+  fd 1
+  while [detect-overlapping] [reposition]
 end
 
 to move-at-random  ;; turtle proc
-  ;; rt random 50
-  ;; lt random 50
-  ;; fd 1
   debugging (list "MOVE-AT-RANDOM:random-neighbouring-patch" random-neighboring-patch)
   move-to random-neighboring-patch
+  while [detect-overlapping] [reposition]
 end
 
+to-report detect-overlapping
+  ;; in-radius is used to improve speed, as suggested in GasLab Circlular Particles model
+  report any? other turtles in-radius turtle-vision with [distance myself < MIN-TURTLE-DISTANCE]
+end
+
+to reposition
+    move-to one-of neighbors
+end
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;            H   A   R   V   E   S   T             ;;
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
@@ -785,7 +800,7 @@ nb-villagers
 nb-villagers
 2
 500
-10.0
+132.0
 10
 1
 NIL
@@ -848,7 +863,7 @@ DEBUG-RATE
 DEBUG-RATE
 0.01
 1
-1.0
+0.05
 0.01
 1
 NIL
@@ -1065,6 +1080,8 @@ Wilensky, U., Rand, W. (2008). NetLogo NW General Examples model.
 ## CREDITS AND REFERENCES
 
 (a reference to the model's URL on the web if it has one, as well as any other necessary credits, citations, and links)
+
+Wilensky, U. (2005). NetLogo GasLab Circular Particles model. http://ccl.northwestern.edu/netlogo/models/GasLabCircularParticles. Center for Connected Learning and Computer-Based Modeling, Northwestern University, Evanston, IL.
 
 ## ASSUMPTIONS
 
