@@ -670,8 +670,8 @@ end
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 to setup-network
   ;; select network type from the chooser
-  ask links [ die ] ;; clear links
-  ;;if nb-villagers = 1 [ stop ] ;; all network types require more than 1 villagers to work
+  clear-links ;; clear links
+  if network-type = "no-network" [no-network]
   if network-type = "random_simple" [random_wire1]
   if network-type = "random_num_nodes" [random_wire2]
   if network-type = "random_max_links" [random_wire3]
@@ -687,11 +687,17 @@ to setup-network
   ;;ask links [hide-link] ;; this is for hidding links
 end
 
+to no-network
+  crt nb-villagers [
+    setup-each-turtle
+  ]
+end
+
 ;; Not very useful Network. I am not calling this. If you want to try, you can create a button an call this procedure from the interface.
 to random_wire1     ;; Random network. Ask each villager to create a link with another random villager.
   ;; If a villager tries to connect with other villager which is already linked, no new link appears.
   ;; Everyone is connected here (everone who is a villager).
-  ask links [die]
+  no-network
   ask turtles [
     create-link-with one-of other turtles
   ]
@@ -701,7 +707,6 @@ end
 to random_wire2  ;; Random network. Ask a random villager to create a link with another random villager.
   ;; If a villager tries to connect with other villager which is already linked, no new link appears.
   ;; Not everyone is connected here (It depends on the nb-villagers selected on the slider).
-  ask links [die]
   repeat nb-villagers [
    ask one-of turtles [
       create-link-with one-of other turtles
@@ -712,7 +717,6 @@ end
 ;; Not very useful Network. I am not calling this. If you want to try, you can create a button an call this procedure from the interface.
 to random_wire3 ;; Erdős-Rényi random network.
   ;; This type of random network ensures a number of links.
-  ask links [die]
   if number-of-links > max-links [ set number-of-links max-links ]
   while [count links < number-of-links ] [
     ask one-of turtles [
@@ -728,7 +732,6 @@ end
 
 to one-community
   ;; it works as one community
-  ask links [die]
   nw:generate-star turtles links nb-villagers [ setup-each-turtle ]
 end
 
@@ -926,7 +929,7 @@ nb-villagers
 nb-villagers
 2
 500
-132.0
+162.0
 10
 1
 NIL
@@ -944,10 +947,10 @@ total-resource
 11
 
 PLOT
-0
-518
-724
-668
+207
+605
+697
+778
 Total resources
 Time
 Total resources
@@ -959,8 +962,8 @@ true
 true
 "" ""
 PENS
-"Land" 1.0 0 -16777216 true "" "plot total-resource"
-"Turtles" 1.0 0 -15575016 true "" "plot total-turtle-resource-reporter"
+"Land Rsc" 1.0 0 -16777216 true "" "plot total-resource"
+"Turtles Rsc" 1.0 0 -15575016 true "" "plot total-turtle-resource-reporter"
 
 OUTPUT
 648
@@ -970,10 +973,10 @@ OUTPUT
 12
 
 SWITCH
-659
-464
-765
-497
+1476
+462
+1582
+495
 DEBUG
 DEBUG
 1
@@ -981,9 +984,9 @@ DEBUG
 -1000
 
 SLIDER
-773
+1298
 463
-945
+1470
 496
 DEBUG-RATE
 DEBUG-RATE
@@ -1065,8 +1068,8 @@ CHOOSER
 367
 network-type
 network-type
-"random_prob" "one-community" "preferential-attachment"
-2
+"no-network" "random_prob" "one-community" "preferential-attachment"
+3
 
 SLIDER
 4
@@ -1152,10 +1155,10 @@ NIL
 0
 
 PLOT
-738
-519
-938
-669
+206
+451
+697
+601
 Hungry turtles
 #HungryTurtles
 Time
