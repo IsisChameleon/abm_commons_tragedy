@@ -180,6 +180,7 @@ to setup
   clear-all
   initialize-globals
   setup-patches
+  set-default-shape turtles "person"
   setup-network
   setup-turtles
   initialize-debugging
@@ -188,7 +189,6 @@ to setup
 end
 
 to setup-turtles
-  set-default-shape turtles "person"
   ;; the rest of the turtle setup is done in the setup-network
   ;; by the procedure setup-each-turtle
   ;; this needs to be set-up after the network is done
@@ -944,6 +944,7 @@ to setup-network
   if network-type = "one-community" [one-community]
   if network-type = "preferential-attachment" [preferential-attachment]
   ask links [
+    show-link
     set strength (1 + random-normal (MAX-LINK-STRENGTH / 2) 1)
     ;; set label strength ;; if you don't want to see the strength value on every link please comment this line
     set label-color white
@@ -1304,7 +1305,7 @@ CHOOSER
 network-type
 network-type
 "no-network" "random_prob" "one-community" "preferential-attachment"
-0
+3
 
 SLIDER
 3
