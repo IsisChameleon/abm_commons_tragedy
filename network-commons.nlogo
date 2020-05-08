@@ -1177,25 +1177,25 @@ NIL
 1
 
 SLIDER
-5
-111
-189
-144
+6
+60
+190
+93
 nb-villagers
 nb-villagers
 2
 500
-162.0
+172.0
 10
 1
 NIL
 HORIZONTAL
 
 MONITOR
-704
-461
-893
-506
+1
+555
+199
+600
 NIL
 total-resource
 17
@@ -1255,25 +1255,10 @@ NIL
 HORIZONTAL
 
 SLIDER
-4
-252
-118
-285
-number-of-links
-number-of-links
-0
-500
-61.0
-1
-1
-NIL
-HORIZONTAL
-
-SLIDER
-4
-146
-119
-179
+3
+284
+189
+317
 wiring-probability
 wiring-probability
 0
@@ -1285,10 +1270,10 @@ NIL
 HORIZONTAL
 
 MONITOR
-2
-378
-60
-423
+6
+354
+64
+399
 max-deg
 max [count link-neighbors] of turtles
 1
@@ -1296,10 +1281,10 @@ max [count link-neighbors] of turtles
 11
 
 MONITOR
-62
-378
-119
-423
+66
+354
+123
+399
 min-deg
 min [count link-neighbors] of turtles
 1
@@ -1307,10 +1292,10 @@ min [count link-neighbors] of turtles
 11
 
 MONITOR
-123
-379
-180
-424
+127
+355
+184
+400
 nb links
 count links
 1
@@ -1318,20 +1303,20 @@ count links
 11
 
 CHOOSER
-2
-324
-183
-369
+5
+202
+190
+247
 network-type
 network-type
 "no-network" "random_prob" "one-community" "preferential-attachment"
-1
+3
 
 SLIDER
-3
-464
-118
-497
+5
+249
+189
+282
 min-degree
 min-degree
 0
@@ -1341,74 +1326,6 @@ min-degree
 1
 NIL
 HORIZONTAL
-
-BUTTON
-121
-427
-201
-460
-NIL
-betweenness
-NIL
-1
-T
-OBSERVER
-NIL
-NIL
-NIL
-NIL
-0
-
-BUTTON
-122
-463
-203
-496
-NIL
-eigenvector
-NIL
-1
-T
-OBSERVER
-NIL
-NIL
-NIL
-NIL
-0
-
-BUTTON
-123
-499
-202
-532
-NIL
-closeness
-NIL
-1
-T
-OBSERVER
-NIL
-NIL
-NIL
-NIL
-0
-
-BUTTON
-78
-536
-203
-569
-NIL
-community-detection
-NIL
-1
-T
-OBSERVER
-NIL
-NIL
-NIL
-NIL
-0
 
 PLOT
 206
@@ -1429,10 +1346,10 @@ PENS
 "default" 1.0 0 -16777216 true "" "plot number-of-hungry-turtles"
 
 PLOT
-705
-604
-905
-754
+0
+605
+201
+779
 Total food given
 Tick
 Food
@@ -1447,10 +1364,10 @@ PENS
 "default" 1.0 0 -16777216 true "" "plot total-food-exchanged"
 
 PLOT
-289
-498
-489
-648
+0
+403
+200
+553
 Degree distribution
 Degrees
 Number-of-nodes
@@ -1491,10 +1408,10 @@ NIL
 HORIZONTAL
 
 PLOT
-945
-598
-1145
-748
+697
+457
+897
+607
 Hubiness
 NIL
 NIL
@@ -1509,10 +1426,10 @@ PENS
 "Hub-iness" 1.0 1 -5825686 true "" "histogram [turtle-test-hub ] of turtles"
 
 SLIDER
-5
-150
-198
-183
+6
+95
+191
+128
 INIT-HARVEST-LEVEL
 INIT-HARVEST-LEVEL
 0
@@ -1524,25 +1441,25 @@ NIL
 HORIZONTAL
 
 SLIDER
-5
-185
-199
-218
+6
+131
+191
+164
 LINK-TRANSMISSION-DISTANCE
 LINK-TRANSMISSION-DISTANCE
 0
 5
-3.0
+1.0
 1
 1
 NIL
 HORIZONTAL
 
 BUTTON
-5
-501
-74
-534
+4
+318
+68
+351
 Hubs
 highlight-hubs turtles
 NIL
@@ -1556,10 +1473,10 @@ NIL
 1
 
 SWITCH
-8
-222
-193
-255
+5
+167
+190
+200
 adaptive-harvest?
 adaptive-harvest?
 1
@@ -1567,10 +1484,10 @@ adaptive-harvest?
 -1000
 
 BUTTON
-11
-537
-125
-570
+70
+318
+140
+351
 Reset Hubs
 reset-hub
 NIL
@@ -1584,10 +1501,10 @@ NIL
 1
 
 BUTTON
-9
-575
-83
-608
+140
+318
+197
+351
 1 Hub
 highlight-hubs turtle-set one-of turtles
 NIL
