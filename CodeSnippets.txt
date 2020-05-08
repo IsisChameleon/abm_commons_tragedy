@@ -22,4 +22,7 @@ Out-link-neighbors
  end
 
  https://stackoverflow.com/questions/27488185/netlogo-flocking-to-others-in-agentset-as-opposed-to-all-turtles?rq=1
+
+ https://stackoverflow.com/questions/47877069/adding-agentset-from-different-agents-togother-into-a-let
+ 
  

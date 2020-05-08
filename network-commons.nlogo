@@ -22,6 +22,7 @@ globals
   ;; values won't change over time
   ;; these values are used in the setup procedures
 
+  PERCENT-BEST-LAND   ;
   MAX-ON-BEST-PATCH   ; maximum value of resource the best patch can hold
   PATCH-MIN-TO-REGROW ; need to leave at least % amount of the max-patch resource for this patch to regrow
   PATCH-REGROWTH-RATE ; % of max resource on patch that regrows every tick if over the min-to-regrow
@@ -32,17 +33,20 @@ globals
   MAX-TURTLE-VISION   ; how many patches ahead a human can see
   MIN-TURTLE-HUNGER   ; how many units of resource a human consumes each step to stay well
   MAX-TURTLE-HARVEST  ; maximum that a human can harvest during a tick
+  MIN-TURTLE-HARVEST  ; minimum amount that a turtle is trying to consume each step
   MAX-TURTLE-MEMORY   ; how many items a turtle can remember in a list
 
   MAX-LINK-STRENGTH   ; maximum strength of the link between 2 turtles
 
-  LINK-TRANSMISSION-DISTANCE ;  indicates how far away on the network information spreads, a value of zero means there's no communication
+  ;; (NOW A SLIDER) LINK-TRANSMISSION-DISTANCE ;  indicates how far away on the network information spreads, a value of zero means there's no communication
 
   ;; DEBUG-RATE         ; proportion of agents for which the debugging is active  -> MOVED TO A SLIDER FOR NOW
 
   ;; these variables evolve with the simulation
 
   total-resource     ; total resource available summed over all the resource patches
+  total-food-exchanged ; amount of resource given to hungry turtles
+  debugging-agentset    ;  turtles that are followed by the debugging procedure when "follow agent-set switch" is true on interface
 
 ]
 patches-own ;; this is the patches of resources
@@ -70,11 +74,18 @@ turtles-own
   turtle-hunger            ; how many resource the turtle needs to consume each step
   turtle-harvest           ; maximum that this turtle can harvest during a tick
   turtle-memory-size            ; size of a turtle's memory
+  turtle-group             ; group of linked turtle by a link radius = LINK-TRANSMISSION-DISTANCE
 
   ;; turtles characteristics that change over time
   turtle-resource                 ; the amount of resource that the turtle privately owns, it adds to it after harvesting
-  turtle-memory                   ; turtle's memory
+
   turtle-current-harvest          ; amount that the turtle has decided to harvest
+  turtle-hunger-level             ; each tick the turtle is hungry consecutively it adds 1, each tick the turtle is not hungry it removes 1 (with a min of zero)
+  current-harvest-recommended-level  ; considering the min that the turtle is willing to harvest and the max that a turtle can harvest
+                                     ; recommended harvest amount = min + (max - min) * current-harvest-recommended-level
+
+  turtle-test-hub                 ; count of how many messages that turtle has received when testing for hubs
+  turtle-memory                   ; turtle's memory
   ;; turtle-recommended-pct-harvest  ;
   ;; harvest-knowledge  ; knowledge they use for harvesting
                      ; list element 0 :  known-best-patch or quantity of resource on the best patch the turtle knows
@@ -109,18 +120,38 @@ links-own
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 to debugging [ list-values ]
   if DEBUG = True [
-    if random-float 1 < DEBUG-RATE [
-      output-type but-last list-values
-      output-show last list-values
+    ifelse debugging-agentset? = True [
+      if self != nobody
+      and any? debugging-agentset
+      [
+        if member? self debugging-agentset [
+         output-type but-last list-values
+          output-show last list-values
+        ]
+      ]
+    ][
+      if random-float 1 < DEBUG-RATE [
+        output-type but-last list-values
+        output-show last list-values
+      ]
     ]
   ]
 end
 
+to debugging-obs [ list-values ]
+  if DEBUG = True [
+    if random-float 1 < DEBUG-RATE [
+       output-type but-last list-values
+      output-show last list-values
+    ]
+  ]
+end
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;     S   E   T   U   P
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
 to initialize-globals
+  set PERCENT-BEST-LAND 0.06
   set MAX-ON-BEST-PATCH 100
   set MAX-TURTLE-VISION 8
   set MIN-TURTLE-HUNGER 2
@@ -131,17 +162,28 @@ to initialize-globals
   set PATCH-DECAY-RATE 0.2
   set MIN-TURTLE-DISTANCE 1    ;; one turtle per patch
   set MAX-LINK-STRENGTH 10     ;;
-  set LINK-TRANSMISSION-DISTANCE 2 ;; indicates how far away on the network information spreads, a value of zero means there's no communication
+  set LINK-TRANSMISSION-DISTANCE 1 ;; indicates how far away on the network information spreads, a value of zero means there's no communication
 
   set DEBUG-RATE 0.05
+
+  set total-food-exchanged 0
+  set debugging-agentset no-turtles
+end
+
+to initialize-debugging
+  if debugging-agentset? = true [
+    set debugging-agentset n-of debugging-agentset-nb turtles
+  ]
 end
 
 to setup
   clear-all
   initialize-globals
   setup-patches
-  setup-turtles
   setup-network
+  setup-turtles
+  initialize-debugging
+  save-setup
   reset-ticks
 end
 
@@ -149,6 +191,10 @@ to setup-turtles
   set-default-shape turtles "person"
   ;; the rest of the turtle setup is done in the setup-network
   ;; by the procedure setup-each-turtle
+  ;; this needs to be set-up after the network is done
+  ask turtles [
+    set-turtle-group LINK-TRANSMISSION-DISTANCE
+  ]
 end
 
 to setup-each-turtle
@@ -156,6 +202,7 @@ to setup-each-turtle
     set turtle-hunger MIN-TURTLE-HUNGER
     set turtle-vision MAX-TURTLE-VISION
     set turtle-harvest MAX-TURTLE-HARVEST
+    set current-harvest-recommended-level INIT-HARVEST-LEVEL ; initial recommended harvest level
     set turtle-resource 0
     set-turtle-memory
     set-turtle-color
@@ -173,6 +220,44 @@ to set-turtle-color ;;turtle proc
   set color palette:scale-gradient _rgb-color-list turtle-resource 0 _max-turtle-resource
 end
 
+to set-turtle-color-by-hub [ min-value max-value ] ;; turtle proc
+  ; bright yellow = 255, 252, 94
+  ; bright pink = 255, 51, 245
+  ; dark pink = 46, 1, 44
+  let _rgb-color-list [[46 1 44] [255 51 245]]
+  set color palette:scale-gradient _rgb-color-list turtle-test-hub min-value max-value
+end
+
+to set-turtle-group [ link-distance ] ;; turtle-proc
+  ifelse  link-distance > 0 [
+    set turtle-group other nw:turtles-in-radius link-distance                ;; this will return all the turtles that are LINK-TRANSMISSION-DISTANCE  - self
+  ][
+    set turtle-group no-turtles
+  ]
+end
+
+to set-turtle-group-with-levels [ link-distance ] ;; turtle-proc
+  ifelse  link-distance > 0 [
+    let all-neighbors other nw:turtles-in-radius link-distance
+    set turtle-group (list) ; initialize to empty list
+    foreach range link-distance [ i ->
+      let neighbors-at-this-level all-neighbors with [
+        nw:distance-to myself = i + 1
+      ]
+      set turtle-group lput neighbors-at-this-level turtle-group
+    ]
+  ][
+    set turtle-group no-turtles
+  ]
+
+  ; demonstrate how to access the levels (sorted only for display purposes)
+  ;;ask one-of turtles [
+  ;;  show sort item 0 turtle-group ; first level neighbors
+  ;;  show sort item 1 turtle-group ; second level neighbors
+  ;;  show sort item 2 turtle-group ; third level neighbors
+  ;; ]
+
+end
 
 ;; NOT USED - ONLY FOR TEST - WILL CLEAN-UP LATER
 to setup-patches-test
@@ -200,7 +285,7 @@ to setup-patches
   ;; a certain percentage of patches will be the best
 
     set patch-max-resource 0
-    if (random-float 100.0) <= percent-best-land [
+    if (random-float 1) <= PERCENT-BEST-LAND [
       set patch-max-resource MAX-ON-BEST-PATCH
       set patch-resource patch-max-resource
     ]
@@ -230,10 +315,90 @@ to set-patch-color ;; patch proc
 end
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;;     F  I  N  D   H  U B S   & T E S T   C O M M S
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+
+to highlight-hubs [ some-turtles ]
+  ;; !!! the results depends on the value of "LINK-TRANSMISSION-DISTANCE"
+  ;; when LINK-TRANSMISSION-DISTANCE = 1 _min and _max need to be = min deg and max degree of the network
+  ;; how to check : click highlight-hub in the interface then use the observer window
+  ;; observer> show [ turtle-test-hub ] of max-one-of turtles [ turtle-test-hub ]
+
+  ask turtles [
+    ;; recalculate the groups of turtles in case the LINK-TRANSMISSION-DISTANCE has changed
+    set-turtle-group LINK-TRANSMISSION-DISTANCE
+    set color black
+    set turtle-test-hub 0
+  ]
+  ask some-turtles [
+    ask turtle-group [
+      set turtle-test-hub turtle-test-hub + 1
+    ]
+  ]
+  let _min [ turtle-test-hub ] of min-one-of some-turtles [ turtle-test-hub ]
+  let _max [ turtle-test-hub ] of max-one-of some-turtles [ turtle-test-hub ]
+  debugging-obs (list "HIGHLIGHT-HUBS: _min " _min "-max : " _max)
+
+  ifelse some-turtles = turtles [
+    ask turtles [
+      set-turtle-color-by-hub _min _max
+    ]
+  ][
+    ask some-turtles [
+      set color white
+      ask turtle-group [
+        set color pink
+      ]
+    ]
+  ]
+
+  ;; recalculate turtle-test-hub for all turtles
+
+  ask turtles [
+    set turtle-test-hub 0
+  ]
+  ask turtles [
+    ask turtle-group [
+      set turtle-test-hub turtle-test-hub + 1
+    ]
+  ]
+end
+
+
+to reset-hub
+  ask turtles [
+    set-turtle-color
+  ]
+end
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;;     S   A   V   E    &&   R  E  L  O  A  D
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+
+
+to save-setup
+  ; procedure to save all setup parameters
+  save-network    ;; save network, ideally with strength value (initial version  can be only links)
+  save-patches    ;; save each patch initial configuration
+  save-parameters ;; to save turtles parameters like nb-villagers, turtle-visino, ....
+end
+
+to save-network
+end
+
+to save-patches
+end
+
+to save-parameters
+end
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;     G   O      P   R   O   C
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
 to go
+  reset-globals-before-go
+
   ask turtles [
     observe-world    ;; set a few variables like best-visible-turtle, best-visible-patch
     move
@@ -243,7 +408,6 @@ to go
     set-turtle-color
     memorize
     change-strategy
-    reset-turtle-variables-after-go
   ]
 
   ask patches [
@@ -304,9 +468,8 @@ to regrow-no-depleted ;; patch proc
   ]
 end
 
-to reset-turtle-variables-after-go ;; turtle proc
-    ;; set has-moved? false
-    ;; set hungry? false
+to reset-globals-before-go ;; observer proc
+    set total-food-exchanged 0
 end
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
@@ -440,7 +603,7 @@ end
 
 to move-alone ;; [ patch-to-move-to ]
   ;; move towards the patch-to-move-to
-  debugging (list "MOVE-ALONE:best-visible-patch" best-visible-patch)
+  debugging (list "MOVE-ALONE:best-visible-patch" best-visible-patch )
   face best-visible-patch
   fd 1
   while [detect-overlapping] [reposition]
@@ -463,15 +626,22 @@ end
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;     M  E  S  S  A  G  E  S
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-to harvest-a-bit-more [ some-turtles percentage ]  ;; turtle proc
-  ;; input : (1) agentset of turtles that are asked to harvest a bit more
-  ;;         (2) percentage : value between 0 and 1 that indicates what's the percentage increase that a turtle needs to harvest
-  ;;             knowing that a turtle current harvest amount is "turtle-current-harvest"
-  ;; (Note: turtle-harvest is the max a turtle can carry/harvest while turtle-current-harvest is what the turtle think it's safe to harvest)
-end
 
-to harvest-a-bit-less [ some-turtles percentage ]  ;;
-  ; same than above
+to harvest-a-bit [ action some-turtles percentage ]  ;; turtle proc
+  let _turtle-current-harvest-request turtle-current-harvest
+  ask some-turtles [
+    if  action = "more" [
+        ;; turtle will increase harvesting up to the max they can harvest (turtle-harvest)
+        set _turtle-current-harvest-request min list (turtle-current-harvest + percentage * turtle-current-harvest) turtle-harvest
+    ]
+    if action = "less" [
+        set _turtle-current-harvest-request max list (turtle-current-harvest - percentage * turtle-current-harvest) 0
+    ]
+    ;; at the moment we consider that the turtle is going to "obey"
+    ;; FUTURE : in the improvments we can get the turtle to do what it's told in proportion to the strength
+    ;; of the link between the turtle and the originator of the message
+    set turtle-current-harvest _turtle-current-harvest-request
+  ]
 end
 
 to let-you-know-im-hungry [ some-turtles ]
@@ -489,6 +659,12 @@ to-report turtles-that-listen-to-me [ a-turtle radius ]
     ;; if radius is 2 returns all turtles that are 1  or 2 links away from a-turtle
     ;; let _turtles ...
     ;; report _turtles
+  if radius = 0 [
+    report nobody
+  ]
+  if radius = 1 [
+    report link-neighbors
+  ]
 end
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
@@ -518,7 +694,7 @@ to-report decide-harvest-2 [ a-patch ]  ;; turtle proc
 
   let _decision decide _probs _possible-harvest
 
-  debugging (list "DECIDE-HARVEST:_decision " _decision "_possible-harvest:" _possible-harvest )
+  debugging (list "DECIDE-HARVEST:on patch " a-patch " _decision " _decision "_possible-harvest:" _possible-harvest )
   report _decision
 end
 
@@ -528,21 +704,51 @@ to-report decide-harvest-sustainable [ a-patch ]  ;; turtle proc
   ;; (list 0: _decrease? 1: _depleted-maybe? 2:_percent-variation 3:_total-variation _4:group-max 5:_group-min )
   ;; position in list begins at 0
 
-  let _patch-max-ever [ patch-max-resource ] of a-patch                         ;; maximum of resource possible on this patch
-  let _patch-min-or-depleted [ min-to-regrow * patch-max-resource ] of a-patch  ;; minimum of resource that needs to be left for that patch to regrow
-  let _patch-current [ patch-resource ] of a-patch                              ;; current amount of resource on the patch
-  let _patch-max-to-harvest min list _patch-current turtle-harvest                   ;; what's the maxium the turtle can harvest on this patch
-  let _patch-safe-to-harvest max list 0 _patch-current - _patch-min-or-depleted      ;; what is a safe value to harvest for not depleting patch
-  let _turtle-safe-to-harvest turtle-hunger                                     ;; if each turtle consumes only what it needs to eat, the thing should be sustainable
+  ;;let _patch-max-ever [ patch-max-resource ] of a-patch                         ;; maximum of resource possible on this patch
+  ;;let _patch-min-or-depleted [ min-to-regrow * patch-max-resource ] of a-patch  ;; minimum of resource that needs to be left for that patch to regrow
+  ;;let _patch-current [ patch-resource ] of a-patch                              ;; current amount of resource on the patch
+  ;;let _patch-max-to-harvest min list _patch-current turtle-harvest                   ;; what's the maxium the turtle can harvest on this patch
+  ;;let _patch-safe-to-harvest max list 0 _patch-current - _patch-min-or-depleted      ;; what is a safe value to harvest for not depleting patch
+  ;;let _turtle-safe-to-harvest turtle-hunger                                     ;; if each turtle consumes only what it needs to eat, the thing should be sustainable
 
-  let _quantity-harvested turtle-hunger
+  let _quantity-harvested list min turtle-hunger [ patch-resource ] of a-patch
 
-  debugging (list "DECIDE-HARVEST:_decision " _quantity-harvested )
+  debugging (list "DECIDE-HARVEST-SUSTAINABLE:_decision " _quantity-harvested " on patch " a-patch)
   report _quantity-harvested
 end
 
+to-report decide-harvest-max [ a-patch ]  ;; turtle proc
+
+  let _quantity-harvested list min turtle-harvest [ patch-resource ] of a-patch
+
+  debugging (list "DECIDE-HARVEST-MAX:_decision " _quantity-harvested " on patch " a-patch)
+  report _quantity-harvested
+end
+
+to-report decide-harvest-between-min-and-max [ a-patch ]
+  let _patch-current [ patch-resource ] of a-patch
+  let _min min list MIN-TURTLE-HARVEST _patch-current         ;; MIN-TURTLE-HARVEST = what's the minimum a turtle is willing to try harvest each step
+  let _max min list turtle-harvest _patch-current
+
+  ;; current-harvest-recommended-level is a percentage that situates the recommended amount to harvest
+  ;;  e.g. if max -min = 10
+  ;; and current level recommended = 0.2
+  ;; current level recommended to harvest = min + 0.2 * (max -min )
+  ;; if current level = 1 : turtle will aim to consume min + (max -min ) ==> max (=turtle-harvest)
+  ;; if current level = 0 : turtle will aim to consume min = MIN-TURTLE-HARVEST
+
+  let _recommended-harvest ( _min + (_max - _min ) * current-harvest-recommended-level )
+  let _quantity-harvested _recommended-harvest
+  debugging (list "DECIDE-HARVEST-BETWEEN-MIN-AND-MAX: current patch resource: " _patch-current "-min: " _min "-max:" _max "-recommended:" _recommended-harvest)
+
+  report _recommended-harvest
+
+end
+
+
+
 to-report decide-harvest [ a-patch ]
-  report decide-harvest-sustainable a-patch
+  report decide-harvest-between-min-and-max a-patch
 end
 
 
@@ -552,12 +758,12 @@ to harvest ;; turtle proc
   ;; decide how much to harvest (options : harvest-max-possible for a human, harvest-%-max-resource-on-that-patch)
 
   ;;let _quantity-harvested turtle-harvest         ;; TODO : change _quantity-harvested based on turtle decision
-  let _quantity-harvested decide-harvest patch-here   ;; decide how much the turtle is prepared to harvest on the patch here
+  let _quantity-harvested decide-harvest best-neighboring-patch   ;; decide how much the turtle is prepared to harvest on the patch here
   let _actual-quantity-harvested _quantity-harvested
 
-  debugging (list "HARVEST:About to, turtle-harvest " _quantity-harvested "-best neighbor:" best-neighboring-patch )
+  debugging (list "HARVEST:About to harvest  " _quantity-harvested "-on-patch best-neighboring-patch " best-neighboring-patch  )
 
-  ask patch-set best-neighboring-patch [
+  ask best-neighboring-patch [
     let _patch-resource-old patch-resource
     set _actual-quantity-harvested min list _quantity-harvested patch-resource ;; we cannot harvest more than what there is in the patch
     if ( patch-resource > 0 ) [
@@ -565,7 +771,7 @@ to harvest ;; turtle proc
       set patch-resource max list patch-resource 0  ;; don't harvest below zero
       set-patch-color
     ]
-    debugging (list "HARVEST:patch resource was " _patch-resource-old "-now is " patch-resource "-qty harvested=" _actual-quantity-harvested)
+    debugging (list "HARVEST:best neighboring patch resource was " _patch-resource-old "-now is " patch-resource "-qty harvested=" _actual-quantity-harvested)
   ]
 
   set turtle-resource turtle-resource + _actual-quantity-harvested
@@ -583,16 +789,47 @@ end
 to consume  ;; turtle procedure, turtule consumes resources
   let _turtle-actual-consume min list turtle-hunger turtle-resource
   set turtle-resource turtle-resource - _turtle-actual-consume
+
   ifelse _turtle-actual-consume < turtle-hunger [
-    get-hungry
+    let _hunger turtle-hunger - _turtle-actual-consume
+    ;; ask for food to the one of the linked turtles with the most food in the bagpack
+    ;; parameter 1 : the turtle to ask, parameter 2 : the amount of food requested
+    let _friend-with-more-food max-one-of turtle-group [ turtle-resource ]
+    let _food ask-for-food  _friend-with-more-food _hunger
+    ;; capture the amount of food given to report the amount of food given every tick
+    ;; total-food-exchanged is reset to 0 each tick
+    set total-food-exchanged total-food-exchanged + _food
+    debugging (list "CONSUME: Before asking for food _hunger=" _hunger "-received food from friend: " _food)
+    set _hunger _hunger - _food
+    if _hunger > 0 [
+      if hungry? = false [
+        let-you-know-im-hungry turtle-group
+      ]
+      set hungry? true
+      set turtle-hunger-level turtle-hunger-level + 1
+      debugging (list "CONSUME: turtle humger level +1 " turtle-hunger-level)
+    ]
   ][
-    set hungry? false
+    set turtle-hunger-level max list (turtle-hunger-level - 1) 0
+    if hungry? = true and turtle-hunger-level = 0 [
+      set hungry? false
+      let-you-know-im-not-hungry-anymore  turtle-group
+    ]
+    debugging (list "CONSUME: turtle humger level -1 " turtle-hunger-level)
   ]
-  debugging (list "CONSUME: _turtle-actual-consume" _turtle-actual-consume "-turtle-resource=" turtle-resource "-hungry?=" hungry?)
+  debugging (list "CONSUME: turtle ate "  _turtle-actual-consume "-turtle has left in her bagpack=" turtle-resource "-is hungry?=" hungry?)
 end
 
-to get-hungry
-  set hungry? true
+to-report ask-for-food [ a-turtle quantity ]
+  ;; For now if the turtle requested has food it will give it
+  ;; FUTURE : the probability to give is related to the strength of the bond between the 2 turtles
+
+  let _available min list quantity [ turtle-resource] of a-turtle
+  ask a-turtle [
+    debugging (list "ASK-FOR-FOOD: Turtle being asked for food has " _available " quantity: ")
+    set turtle-resource turtle-resource - _available
+  ]
+  report _available
   ;; ask neighboring turtles for food, i.e ask best-visible-friend
 end
 
@@ -629,11 +866,7 @@ to memorize-current-patch-resource-level
 end
 
 to-report get-patch-variation [ a-patch ]
-  let _linked-turtles self
-  if  LINK-TRANSMISSION-DISTANCE > 0 [
-    set _linked-turtles nw:turtles-in-radius LINK-TRANSMISSION-DISTANCE                 ;; this will return all the turtles that are LINK-TRANSMISSION-DISTANCE
-                                                                                      ;; away from the calling turtle and include the calling turtle
-  ]
+  let _linked-turtles turtle-group
   let _current-value [ patch-resource ] of a-patch
   let _group-max 0
   let _group-min MAX-ON-BEST-PATCH
@@ -706,13 +939,13 @@ to setup-network
   if network-type = "no-network" [no-network]
   if network-type = "random_simple" [random_wire1]
   if network-type = "random_num_nodes" [random_wire2]
-  if network-type = "random_max_links" [random_wire3]
+  ;; if network-type = "random_max_links" [random_wire3]
   if network-type = "random_prob" [random_wire4] ;; requires to set prob > 0 to work
   if network-type = "one-community" [one-community]
   if network-type = "preferential-attachment" [preferential-attachment]
   ask links [
     set strength (1 + random-normal (MAX-LINK-STRENGTH / 2) 1)
-    set label strength ;; if you don't want to see the strength value on every link please comment this line
+    ;; set label strength ;; if you don't want to see the strength value on every link please comment this line
     set label-color white
     debugging (list "LINKS-STRENGTH:" strength )
   ]
@@ -747,15 +980,15 @@ to random_wire2  ;; Random network. Ask a random villager to create a link with 
 
 end
 ;; Not very useful Network. I am not calling this. If you want to try, you can create a button an call this procedure from the interface.
-to random_wire3 ;; Erdős-Rényi random network.
+;;to random_wire3 ;; Erdős-Rényi random network.
   ;; This type of random network ensures a number of links.
-  if number-of-links > max-links [ set number-of-links max-links ]
-  while [count links < number-of-links ] [
-    ask one-of turtles [
-      create-link-with one-of other turtles
-    ]
-  ]
-end
+;;   if number-of-links > max-links [ set number-of-links max-links ]
+;;   while [count links < number-of-links ] [
+;;     ask one-of turtles [
+;;       create-link-with one-of other turtles
+;;     ]
+;;   ]
+;; end
 
 to random_wire4
   ask links [die]
@@ -775,7 +1008,7 @@ to preferential-attachment
   ]
 
   if nb-villagers >= 2 [nw:generate-preferential-attachment turtles links nb-villagers min-degree [ setup-each-turtle ]]
-  debugging (list "PREFERENTIAL-ATTACHMENT:nb-villagers:" nb-villagers "-min-degree:" min-degree )
+  debugging-obs (list "PREFERENTIAL-ATTACHMENT:nb-villagers:" nb-villagers "-min-degree:" min-degree )
 end
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
@@ -939,23 +1172,8 @@ NIL
 
 SLIDER
 5
-70
-118
-103
-percent-best-land
-percent-best-land
-0
-100
-6.0
-1
-1
-NIL
-HORIZONTAL
-
-SLIDER
-5
 111
-119
+189
 144
 nb-villagers
 nb-villagers
@@ -968,10 +1186,10 @@ NIL
 HORIZONTAL
 
 MONITOR
-0
-471
-189
-516
+704
+461
+893
+506
 NIL
 total-resource
 17
@@ -1011,12 +1229,12 @@ SWITCH
 495
 DEBUG
 DEBUG
-1
+0
 1
 -1000
 
 SLIDER
-1298
+1344
 463
 1470
 496
@@ -1031,25 +1249,10 @@ NIL
 HORIZONTAL
 
 SLIDER
-4
-252
-118
-285
-number-of-links
-number-of-links
-0
-500
-72.0
-1
-1
-NIL
-HORIZONTAL
-
-SLIDER
-4
-146
-119
-179
+2
+425
+117
+458
 wiring-probability
 wiring-probability
 0
@@ -1095,19 +1298,19 @@ count links
 
 CHOOSER
 2
-322
+324
 183
-367
+369
 network-type
 network-type
 "no-network" "random_prob" "one-community" "preferential-attachment"
-3
+0
 
 SLIDER
-4
-219
-119
-252
+3
+464
+118
+497
 min-degree
 min-degree
 0
@@ -1119,10 +1322,10 @@ NIL
 HORIZONTAL
 
 BUTTON
-124
-70
-204
-103
+121
+427
+201
+460
 NIL
 betweenness
 NIL
@@ -1136,10 +1339,10 @@ NIL
 0
 
 BUTTON
-123
-106
-204
-139
+122
+463
+203
+496
 NIL
 eigenvector
 NIL
@@ -1153,10 +1356,10 @@ NIL
 0
 
 BUTTON
-124
-142
-203
-175
+123
+499
+202
+532
 NIL
 closeness
 NIL
@@ -1170,10 +1373,10 @@ NIL
 0
 
 BUTTON
-3
-287
-128
-320
+78
+536
+203
+569
 NIL
 community-detection
 NIL
@@ -1204,6 +1407,160 @@ true
 PENS
 "default" 1.0 0 -16777216 true "" "plot number-of-hungry-turtles"
 
+PLOT
+705
+604
+905
+754
+Total food given
+Tick
+Food
+0.0
+10.0
+0.0
+10.0
+true
+false
+"" ""
+PENS
+"default" 1.0 0 -16777216 true "" "plot total-food-exchanged"
+
+SWITCH
+1130
+463
+1341
+496
+debugging-agentset?
+debugging-agentset?
+0
+1
+-1000
+
+SLIDER
+896
+462
+1123
+495
+debugging-agentset-nb
+debugging-agentset-nb
+1
+10
+1.0
+1
+1
+NIL
+HORIZONTAL
+
+PLOT
+945
+598
+1145
+748
+Hubiness
+NIL
+NIL
+0.0
+10.0
+0.0
+10.0
+true
+false
+"set-histogram-num-bars 10" ""
+PENS
+"Hub-iness" 1.0 0 -5825686 true "" "histogram [turtle-test-hub ] of turtles"
+
+SLIDER
+5
+150
+198
+183
+INIT-HARVEST-LEVEL
+INIT-HARVEST-LEVEL
+0
+1
+0.35
+0.05
+1
+NIL
+HORIZONTAL
+
+SLIDER
+5
+185
+199
+218
+LINK-TRANSMISSION-DISTANCE
+LINK-TRANSMISSION-DISTANCE
+0
+5
+1.0
+1
+1
+NIL
+HORIZONTAL
+
+BUTTON
+5
+501
+74
+534
+Hubs
+highlight-hubs turtles
+NIL
+1
+T
+OBSERVER
+NIL
+NIL
+NIL
+NIL
+1
+
+SWITCH
+8
+222
+193
+255
+adaptive-harvest?
+adaptive-harvest?
+1
+1
+-1000
+
+BUTTON
+11
+537
+125
+570
+Reset Hubs
+reset-hub
+NIL
+1
+T
+OBSERVER
+NIL
+NIL
+NIL
+NIL
+1
+
+BUTTON
+9
+575
+83
+608
+1 Hub
+highlight-hubs turtle-set one-of turtles
+NIL
+1
+T
+OBSERVER
+NIL
+NIL
+NIL
+NIL
+1
+
 @#$#@#$#@
 ## WHAT IS IT?
 
@@ -1225,9 +1582,32 @@ At each step villagers move (depending on their strategy), harvest and consume r
 
 ## HOW TO USE IT
 
-Set the percentage-of-best-land from the slider.
-Set the number of villagers from the slider.
+;; I think we can fix - Set the percentage-of-best-land from the slider.
+### INITIAL SETUP
+
+(1) Set the number of villagers from the slider.
+
+(2) (2.1)Set "Adapative harvest" switch to False to find a sustainable set of parameters. Non Adaptive harvest, or sustainable harvest will let each turtle only consume its hunger, no more no less. If the parameters cannot be sustainable like that, then that means it's not possible to feed all those turtles with the current landscape of resources.
+    (2.2) Set "Adaptive harvest" to True when you want turtles to start adapting their harvest based on the messages they send to each other through their particular network configuration.
+          In that case, you can also choose the "Initial Harvest Level". If the Initial Harvest level is set to zero, then the turtle will only consume the minimum allowed. Experiments can set this minimum allowed to the turtle-hunger or else to zero. By default it is set to the turtle hunger.
+If greater than zero the "Initial harvest level" indicates what is the percentage between min possible harvest and max possible harvest that the turtle should consume (as recommended). 
+During the simulation, turtles receiving too much distress signals (or the contrary) will send messages to raise or lower that "Harvest Level". The messages are only sent to the turtles linked to the originator of the message by as many as LINK-TRANSMISSION-DISTANCE links.
+
+(3) Define network properties
+
+(4) Run Setup
 Press Setup.
+
+### SETUP WITHOUT CHANGING NETWORK LINKS AND STRENGTH
+
+### HIGHLIGHT COMMUNICATION HUBS
+
+(1) choose the link transmission distance LINK-TRANSMISSION-DISTANCE. This indicates how many links a message can travel from its originator. 
+(2) click Hub
+All turtles will send 1 message to all their neighbors that are connected to them by max LINK-TRANSMISSION-DISTANCE. The count of messages received by each turtle is going to measure their "hub-iness" . The turtles are going to be colored to higlight the hubs in bright pink
+(3) if you wish to reset colors, click the button "Reset Hub"
+
+### RUN THE SIMULATION
 Press Go.
 
 ## THINGS TO NOTICE
