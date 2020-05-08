@@ -216,9 +216,9 @@ to set-turtle-memory
 end
 
 to set-turtle-color ;;turtle proc
-  ;let _rgb-color-list [[255 0 0] [0 125 125]]
-  ;let _max-turtle-resource total-resource-reporter / nb-villagers
-  ;set color palette:scale-gradient _rgb-color-list turtle-resource 0 _max-turtle-resource
+  let _rgb-color-list [[255 0 0] [0 125 125]]
+  let _max-turtle-resource total-resource-reporter / nb-villagers
+  set color palette:scale-gradient _rgb-color-list turtle-resource 0 _max-turtle-resource
   set color red
 
 end
@@ -998,7 +998,6 @@ end
 ;; end
 
 to random_wire4
-  ask links [die]
   nw:generate-random turtles links nb-villagers wiring-probability [ setup-each-turtle  ]
 end
 
@@ -1115,7 +1114,6 @@ end
 to-report number-of-hungry-turtles
   report count turtles with [ hungry? = true ]
 end
-
 @#$#@#$#@
 GRAPHICS-WINDOW
 206
@@ -1265,7 +1263,7 @@ number-of-links
 number-of-links
 0
 500
-203.0
+61.0
 1
 1
 NIL
@@ -1280,7 +1278,7 @@ wiring-probability
 wiring-probability
 0
 0.2
-0.166
+0.038
 0.00001
 1
 NIL
@@ -1327,7 +1325,7 @@ CHOOSER
 network-type
 network-type
 "no-network" "random_prob" "one-community" "preferential-attachment"
-3
+1
 
 SLIDER
 3
@@ -1503,12 +1501,12 @@ NIL
 0.0
 10.0
 0.0
-10.0
-true
+30.0
+false
 false
 "set-histogram-num-bars 10" ""
 PENS
-"Hub-iness" 1.0 0 -5825686 true "" "histogram [turtle-test-hub ] of turtles"
+"Hub-iness" 1.0 1 -5825686 true "" "histogram [turtle-test-hub ] of turtles"
 
 SLIDER
 5
@@ -1534,7 +1532,7 @@ LINK-TRANSMISSION-DISTANCE
 LINK-TRANSMISSION-DISTANCE
 0
 5
-1.0
+3.0
 1
 1
 NIL
@@ -1615,9 +1613,9 @@ The humans belong to a specific initial social network, living off the resource,
 
 This model starts with initializing global variables (MAX-ON-BEST-PATCH, MAX-HUMAN-VISION, MIN-HUMAN-HUNGER and MAX-HUMAN-HARVEST), setting resource-patches (
 
-  setup-patches
-  setup-turtles ;; setup humans
-  setup-network
+.
+.
+.
 
 At each step villagers move (depending on their strategy), harvest and consume resources, learn or memorize information about the resources and share it with their nearby nodes, and take a decision about keep their strategy or change it.
 
@@ -1635,6 +1633,11 @@ If greater than zero the "Initial harvest level" indicates what is the percentag
 During the simulation, turtles receiving too much distress signals (or the contrary) will send messages to raise or lower that "Harvest Level". The messages are only sent to the turtles linked to the originator of the message by as many as LINK-TRANSMISSION-DISTANCE links.
 
 (3) Define network properties
+
+Set Network type: no-network, random_prob, one-community or preferential-attachment.
+For random probability a wiring-probability needs to be setted.
+For preferential-attachment a min-degree needs to be setted. min-degree should be smaller than the 
+For preferential-attachment
 
 (4) Run Setup
 Press Setup.
