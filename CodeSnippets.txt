@@ -25,4 +25,11 @@ Out-link-neighbors
 
  https://stackoverflow.com/questions/47877069/adding-agentset-from-different-agents-togother-into-a-let
  
- 
+ to-report turtles-that-listen-to-me [ a-turtle radius ]
+  let _turtles-that-listen-to-me [my-out-links] of a-turtle ;;all links outgoing from a-turtle
+  ask _turtles-that-listen-to-me [if distance other-end > radius [   ;; distance other-end reports the distance between the endpoints of the link.
+  set _turtles-that-listen-to-me _turtles-that-listen-to-me with [self != myself]   ;; remove this turtle from the agentset
+    ask _turtles-that-listen-to-me [set color red]
+  ]
+  ]
+  report _turtles-that-listen-to-me

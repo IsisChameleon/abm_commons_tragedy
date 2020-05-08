@@ -185,6 +185,7 @@ to setup
   setup-turtles
   initialize-debugging
   save-setup
+  set-current-plot "Degree distribution"
   reset-ticks
 end
 
@@ -215,9 +216,11 @@ to set-turtle-memory
 end
 
 to set-turtle-color ;;turtle proc
-  let _rgb-color-list [[255 0 0] [0 125 125]]
-  let _max-turtle-resource total-resource-reporter / nb-villagers
-  set color palette:scale-gradient _rgb-color-list turtle-resource 0 _max-turtle-resource
+  ;let _rgb-color-list [[255 0 0] [0 125 125]]
+  ;let _max-turtle-resource total-resource-reporter / nb-villagers
+  ;set color palette:scale-gradient _rgb-color-list turtle-resource 0 _max-turtle-resource
+  set color red
+
 end
 
 to set-turtle-color-by-hub [ min-value max-value ] ;; turtle proc
@@ -408,6 +411,7 @@ to go
     set-turtle-color
     memorize
     change-strategy
+    update-plots
   ]
 
   ask patches [
@@ -946,11 +950,13 @@ to setup-network
   ask links [
     show-link
     set strength (1 + random-normal (MAX-LINK-STRENGTH / 2) 1)
-    ;; set label strength ;; if you don't want to see the strength value on every link please comment this line
-    set label-color white
-    debugging (list "LINKS-STRENGTH:" strength )
+    ;;set label strength ;; if you don't want to see the strength value on every link please comment this line
+    ;;set label-color white
+    ;;debugging (list "LINKS-STRENGTH:" strength )
   ]
   ;;ask links [hide-link] ;; this is for hidding links
+
+
 end
 
 to no-network
@@ -1109,6 +1115,7 @@ end
 to-report number-of-hungry-turtles
   report count turtles with [ hungry? = true ]
 end
+
 @#$#@#$#@
 GRAPHICS-WINDOW
 206
@@ -1250,10 +1257,25 @@ NIL
 HORIZONTAL
 
 SLIDER
-2
-425
-117
-458
+4
+252
+118
+285
+number-of-links
+number-of-links
+0
+500
+203.0
+1
+1
+NIL
+HORIZONTAL
+
+SLIDER
+4
+146
+119
+179
 wiring-probability
 wiring-probability
 0
@@ -1316,7 +1338,7 @@ min-degree
 min-degree
 0
 10
-2.0
+3.0
 1
 1
 NIL
@@ -1425,6 +1447,24 @@ false
 "" ""
 PENS
 "default" 1.0 0 -16777216 true "" "plot total-food-exchanged"
+
+PLOT
+289
+498
+489
+648
+Degree distribution
+Degrees
+Number-of-nodes
+0.0
+10.0
+0.0
+10.0
+true
+false
+"" ""
+PENS
+"default" 1.0 1 -16777216 true "" "histogram [count my-links] of turtles"
 
 SWITCH
 1130
