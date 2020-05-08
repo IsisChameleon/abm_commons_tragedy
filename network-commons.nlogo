@@ -99,7 +99,7 @@ turtles-own
   ;; decision
   has-moved?        ; set to true when a turtle has move. reset to false at the end of Go
   hungry?           ; set to true when a turtle cannot consume "turtle-hunger" amount of resource in one tick
-  hungry-friend-count    ; amount of friends that have told they are hungry
+  hungry-friends-count    ; amount of friends that have told they are hungry
 
   ;; variables valid for one tick, set in observe-world
   random-visible-patch
@@ -606,7 +606,7 @@ to move-alone ;; [ patch-to-move-to ]
   debugging (list "MOVE-ALONE:best-visible-patch" best-visible-patch )
   face best-visible-patch
   fd 1
-  while [detect-overlapping] [reposition]
+  while [ any? other turtles-here] [reposition]
 end
 
 to move-at-random  ;; turtle proc
@@ -615,10 +615,10 @@ to move-at-random  ;; turtle proc
   while [detect-overlapping] [reposition]
 end
 
-to-report detect-overlapping
+;;to-report detect-overlapping
   ;; in-radius is used to improve speed, as suggested in GasLab Circlular Particles model
-  report any? other turtles in-radius turtle-vision with [distance myself < MIN-TURTLE-DISTANCE]
-end
+  ;;report any? other turtles in-radius turtle-vision with [distance myself < MIN-TURTLE-DISTANCE]
+;;end
 
 to reposition
     move-to one-of neighbors
@@ -645,11 +645,16 @@ to harvest-a-bit [ action some-turtles percentage ]  ;; turtle proc
 end
 
 to let-you-know-im-hungry [ some-turtles ]
-  ask some-turtles [ set hungry-friend-count hungry-friend-count + 1 ]
+  ask some-turtles [
+   set hungry-friends-count hungry-friends-count + 1
+   debugging (list "IM-HUNGRY: One of my friend is hungry bringing the count up to "  hungry-friends-count)
+  ]
 end
 
 to let-you-know-im-not-hungry-anymore [ some-turtles ]
-  ask some-turtles [ set hungry-friend-count hungry-friend-count - 1 ]
+  ask some-turtles [
+    set hungry-friends-count max list ( hungry-friends-count - 1 ) 0
+  ]
 end
 
 to-report turtles-that-listen-to-me [ a-turtle radius ]
@@ -711,9 +716,9 @@ to-report decide-harvest-sustainable [ a-patch ]  ;; turtle proc
   ;;let _patch-safe-to-harvest max list 0 _patch-current - _patch-min-or-depleted      ;; what is a safe value to harvest for not depleting patch
   ;;let _turtle-safe-to-harvest turtle-hunger                                     ;; if each turtle consumes only what it needs to eat, the thing should be sustainable
 
-  let _quantity-harvested list min turtle-hunger [ patch-resource ] of a-patch
+  let _quantity-harvested min list turtle-hunger [ patch-resource ] of a-patch
 
-  debugging (list "DECIDE-HARVEST-SUSTAINABLE:_decision " _quantity-harvested " on patch " a-patch)
+  debugging (list "DECIDE-HARVEST-SUSTAINABLE:_decision " _quantity-harvested " on patch " a-patch " containing this amount of resource " [ patch-resource ] of a-patch )
   report _quantity-harvested
 end
 
@@ -737,9 +742,13 @@ to-report decide-harvest-between-min-and-max [ a-patch ]
   ;; if current level = 1 : turtle will aim to consume min + (max -min ) ==> max (=turtle-harvest)
   ;; if current level = 0 : turtle will aim to consume min = MIN-TURTLE-HARVEST
 
-  let _recommended-harvest ( _min + (_max - _min ) * current-harvest-recommended-level )
+  let _factor _patch-current / turtle-harvest
+
+  let _recommended-harvest ( _min + (_max - _min ) * current-harvest-recommended-level * _factor / 4 )
+  debugging (list "DECIDE-HARVEST-BETWEEN-MIN-AND-MAX: current patch resource: " _patch-current "-factor: " _factor "-harvest recommended " _recommended-harvest)
+
   let _quantity-harvested _recommended-harvest
-  debugging (list "DECIDE-HARVEST-BETWEEN-MIN-AND-MAX: current patch resource: " _patch-current "-min: " _min "-max:" _max "-recommended:" _recommended-harvest)
+  debugging (list "DECIDE-HARVEST-BETWEEN-MIN-AND-MAX: current patch resource: " _patch-current "-min: " _min "-max:" _max "-harvest decided" _quantity-harvested )
 
   report _recommended-harvest
 
@@ -748,7 +757,11 @@ end
 
 
 to-report decide-harvest [ a-patch ]
-  report decide-harvest-between-min-and-max a-patch
+  ifelse adaptive-harvest? = true [
+    report decide-harvest-between-min-and-max a-patch
+  ][
+    report decide-harvest-sustainable a-patch
+  ]
 end
 
 
@@ -1109,6 +1122,7 @@ end
 to-report number-of-hungry-turtles
   report count turtles with [ hungry? = true ]
 end
+
 @#$#@#$#@
 GRAPHICS-WINDOW
 206
@@ -1213,7 +1227,7 @@ true
 true
 "" ""
 PENS
-"Land Rsc" 1.0 0 -16777216 true "" "plot total-resource"
+"Land Rsc" 1.0 0 -16777216 true "" "plot total-resource-reporter"
 "Turtles Rsc" 1.0 0 -15575016 true "" "plot total-turtle-resource-reporter"
 
 OUTPUT
@@ -1408,24 +1422,6 @@ true
 PENS
 "default" 1.0 0 -16777216 true "" "plot number-of-hungry-turtles"
 
-PLOT
-705
-604
-905
-754
-Total food given
-Tick
-Food
-0.0
-10.0
-0.0
-10.0
-true
-false
-"" ""
-PENS
-"default" 1.0 0 -16777216 true "" "plot total-food-exchanged"
-
 SWITCH
 1130
 463
@@ -1561,6 +1557,42 @@ NIL
 NIL
 NIL
 1
+
+PLOT
+1172
+593
+1372
+743
+Hungry friends
+NIL
+NIL
+0.0
+10.0
+0.0
+10.0
+true
+false
+"" ""
+PENS
+"default" 1.0 1 -16777216 true "" "histogram [ hungry-friends-count ] of turtles"
+
+PLOT
+707
+605
+907
+755
+Total food exchanged
+NIL
+NIL
+0.0
+10.0
+0.0
+10.0
+true
+false
+"" ""
+PENS
+"default" 1.0 0 -16777216 true "" "plot total-food-exchanged"
 
 @#$#@#$#@
 ## WHAT IS IT?
