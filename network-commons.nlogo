@@ -74,11 +74,12 @@ turtles-own
   ;; turtles characteristics that change over time
   turtle-resource                 ; the amount of resource that the turtle privately owns, it adds to it after harvesting
   turtle-memory                   ; turtle's memory
-  turtle-recommended-pct-harvest  ;
-  harvest-knowledge  ; knowledge they use for harvesting
+  turtle-current-harvest          ; amount that the turtle has decided to harvest
+  ;; turtle-recommended-pct-harvest  ;
+  ;; harvest-knowledge  ; knowledge they use for harvesting
                      ; list element 0 :  known-best-patch or quantity of resource on the best patch the turtle knows
                      ; list element 1 :  % of the best quantity they know that they will leave on patch
-  harvest-decision   ; probability to make the following decision
+  ;; harvest-decision   ; probability to make the following decision
                      ; "harvest-max-possible" probability:  1 - harvest-decision
                      ; "harvest-using-knowledge" probability: harvest-decision
 
@@ -87,7 +88,7 @@ turtles-own
   ;; decision
   has-moved?        ; set to true when a turtle has move. reset to false at the end of Go
   hungry?           ; set to true when a turtle cannot consume "turtle-hunger" amount of resource in one tick
-  friends-hungry    ; amount of friends that have told they are hungry
+  hungry-friend-count    ; amount of friends that have told they are hungry
 
   ;; variables valid for one tick, set in observe-world
   random-visible-patch
@@ -459,6 +460,37 @@ end
 to reposition
     move-to one-of neighbors
 end
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;;     M  E  S  S  A  G  E  S
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+to harvest-a-bit-more [ some-turtles percentage ]  ;; turtle proc
+  ;; input : (1) agentset of turtles that are asked to harvest a bit more
+  ;;         (2) percentage : value between 0 and 1 that indicates what's the percentage increase that a turtle needs to harvest
+  ;;             knowing that a turtle current harvest amount is "turtle-current-harvest"
+  ;; (Note: turtle-harvest is the max a turtle can carry/harvest while turtle-current-harvest is what the turtle think it's safe to harvest)
+end
+
+to harvest-a-bit-less [ some-turtles percentage ]  ;;
+  ; same than above
+end
+
+to let-you-know-im-hungry [ some-turtles ]
+  ask some-turtles [ set hungry-friend-count hungry-friend-count + 1 ]
+end
+
+to let-you-know-im-not-hungry-anymore [ some-turtles ]
+  ask some-turtles [ set hungry-friend-count hungry-friend-count - 1 ]
+end
+
+to-report turtles-that-listen-to-me [ a-turtle radius ]
+    ;; reports an agentset of turtles that are linked to a-turtle by "radius" nodes
+    ;; e.g if radius is zero returns a-turtle
+    ;; if radius is 1 returns all turtles that are linked directly to that turtle
+    ;; if radius is 2 returns all turtles that are 1  or 2 links away from a-turtle
+    ;; let _turtles ...
+    ;; report _turtles
+end
+
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;     H   A   R   V   E   S   T
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
