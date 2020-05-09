@@ -25,4 +25,4 @@ Out-link-neighbors
 
  https://stackoverflow.com/questions/47877069/adding-agentset-from-different-agents-togother-into-a-let
  
- 
+ https://stackoverflow.com/questions/8425518/netlogo-two-agentsets-operations
