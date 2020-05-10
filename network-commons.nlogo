@@ -30,6 +30,9 @@ globals
   MAX-TURTLE-SIZE     ; used for visuals
 
   MIN-TURTLE-DISTANCE ; minimum patches a turtle has to stay away from others
+  FIND-NEW-PLACE-PCT  ; percentage of neighboring turtles hungry that will make a turtle go to look for a new place
+  MWF-TICKER-MAX
+  FNP-TICKER-MAX
 
   MAX-TURTLE-VISION   ; how many patches ahead a human can see
   MIN-TURTLE-HUNGER   ; how many units of resource a human consumes each step to stay well
@@ -112,6 +115,13 @@ turtles-own
   ;;=========================
   turtle-test-hub                 ; count of how many messages that turtle has received when testing for hubs
 
+  ;; MOVE
+  ;;=====
+
+  new-place                   ; new place the turtle is heading towards
+  move-friend                 ; friend the turtle is moving to
+  move-with-friend-ticker     ;
+  find-new-place-ticker       ;
 
   ;; MEMORY AND STRATEGY, ALERTING LEVELS
   ;;=====================================
@@ -160,7 +170,7 @@ links-own
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 to debugging [ proc-name list-values ]
   if DEBUG = True [
-    if debugging-agentset? = True [
+    ifelse debugging-agentset? = True [
       if self != nobody
       and any? debugging-agentset
       [
@@ -169,14 +179,14 @@ to debugging [ proc-name list-values ]
           output-show last list-values
         ]
       ]
-    ];;[
+    ][
       ;;if  proc-name = proc-name-chooser or proc-name-chooser = "all" or proc-name = "subproc" [
-      ;;  if random-float 1 < DEBUG-RATE [
-       ;;   output-type but-last list-values
-      ;;    output-show last list-values
-      ;;  ]
+        if random-float 1 < DEBUG-RATE [
+          output-type but-last list-values
+          output-show last list-values
+        ]
       ;;]
-    ;;]
+    ]
   ]
 end
 
@@ -197,7 +207,7 @@ to initialize-globals
 
   ;; turtles intrisic properties
 
-  set MAX-TURTLE-VISION 10
+  set MAX-TURTLE-VISION 8
   set MIN-TURTLE-HUNGER 2
   set MAX-TURTLE-HARVEST 5
   set MIN-TURTLE-HARVEST 2
@@ -218,6 +228,9 @@ to initialize-globals
   ;; movement
 
   set MIN-TURTLE-DISTANCE 2    ;; one turtle per patch
+  set FIND-NEW-PLACE-PCT 0.1   ;; treshold for the amount fo hungry turtles that trigger a move
+  set MWF-TICKER-MAX 20        ;; turtle tries to reach friend for max 50 ticks
+  set FNP-TICKER-MAX 20        ;; turtle tries to reach new place for max 50 ticks
 
   ;; communication
 
@@ -266,6 +279,19 @@ to setup
   reset-ticks
 end
 
+to reset-current
+  ask patches [
+    set patch-resource patch-max-resource
+    set patch-regrowth  0     ; amount of regrowth this tick
+    set depleted? false
+  ]
+  ask turtles [
+   setup-each-turtle
+  ]
+  reset-ticks
+  clear-all-plots
+end
+
 to setup-turtles
   ;; the rest of the turtle setup is done in the setup-network
   ;; by the procedure setup-each-turtle
@@ -273,7 +299,6 @@ to setup-turtles
   ask turtles [
     set-turtle-group LINK-TRANSMISSION-DISTANCE
     set-turtle-color
-    set-turtle-size
   ]
 end
 
@@ -285,6 +310,8 @@ to setup-each-turtle
   set current-harvest-recommended-level INIT-HARVEST-LEVEL ; initial recommended harvest level
   set hfc-ticker 0
   set prl-ticker 0
+  set move-with-friend-ticker 0
+  set find-new-place-ticker 0
   set max-prl 0
   set turtle-resource 0
   set current-actual-quantity-harvested 0
@@ -299,43 +326,33 @@ to set-turtle-memory
   memorize-current-patch-resource-level
 end
 
-to set-turtle-size
-   if size-chooser = "turtle-backpack" [
+to set-turtle-size-backpack
     let _max [ turtle-resource] of max-one-of turtles [ turtle-resource ]
     let _min [ turtle-resource] of min-one-of turtles [ turtle-resource ]
-    ifelse _max > 0 [
+    ifelse ( _max - _min ) > 0 [
       set size (turtle-resource - _min) * MAX-TURTLE-SIZE /  ( _max - _min )  + 1
       set size max list size 1
       set size min list size MAX-TURTLE-SIZE
     ][
       set size 1
     ]
-  ]
-  if size-chooser = "turtle-connectivity" [
+end
+
+to set-turtle-size-connectivity
     let _min [ turtle-test-hub ] of min-one-of turtles [ turtle-test-hub ]
     let _max [ turtle-test-hub ] of max-one-of turtles [ turtle-test-hub ]
-    ifelse _max > 0 [
+    ifelse ( _max - _min ) > 0 [
       set size (turtle-test-hub - _min ) * MAX-TURTLE-SIZE / ( _max - _min )  + 1
       set size max list size 1
       set size min list size MAX-TURTLE-SIZE
     ][
       set size 1
     ]
-  ]
-  if size-chooser = "default" [
-    ;; do nothing
-  ]
 end
 
 to reset-size
   ask turtles [
     set size 1
-  ]
-end
-
-to set-size
-  ask turtles [
-    set-turtle-size
   ]
 end
 
@@ -349,11 +366,13 @@ to set-turtle-color
   if hungry? = true [ set label "hungry" ]
   if color-chooser = "turtle-backpack" [
     set-turtle-color-backpack
+    set-turtle-size-backpack
   ]
   if color-chooser = "turtle-connectivity" [
     let _min [ turtle-test-hub ] of min-one-of turtles [ turtle-test-hub ]
     let _max [ turtle-test-hub ] of max-one-of turtles [ turtle-test-hub ]
     set-turtle-color-by-hub  _min _max
+    set-turtle-size-connectivity
   ]
   if color-chooser = "turtle-resource-ticker" [
     if prl-ticker = 0 [
@@ -576,6 +595,10 @@ end
 to go
   reset-globals-before-go
 
+  ask links [
+    ifelse show-link?  [ show-link ] [ hide-link ]
+  ]
+
   ask turtles [
     set label ""
     observe-world    ;; set a few variables like best-visible-turtle, best-visible-patch
@@ -585,7 +608,6 @@ to go
     consume
     memorize-and-strategy
     set-turtle-color
-    set-turtle-size
     reset-alert
     ;; change-strategy
   ]
@@ -709,19 +731,23 @@ to move  ;; turtle proc
 
   if ( _decision = "stay" )[
     stay
-    ]
+  ]
   if (_decision = "move-with-friend")[
-    move-with-friend ;; [ turtle ]
+    move-with-friend move-friend ;; [ turtle ]
     set has-moved? true
-    ]
+  ]
   if (_decision = "move-alone")[
     move-alone ;; [ patch ]
     set has-moved? true
-    ]
+  ]
+  if (_decision = "find-new-place")[
+    find-new-place new-place ;; [ patch ]
+    set has-moved? true
+  ]
   if (_decision = "random")[
     move-at-random
     set has-moved? true
-    ]
+  ]
 end
 
 to-report decide-move
@@ -731,6 +757,38 @@ to-report decide-move
   ;; with a friend the probability to move with a friend is propertional to the strength of that bond, up to a max of 100% moving with the friend
   ;; if that friend has the max strength link
   ;; the probabilities for moving alone or staying are scaled down to "make room" for the moving with friend probability
+
+  ;; if turtles already following a friend
+
+  let _decision ""
+
+  if move-with-friend-ticker > 0 AND
+     move-with-friend-ticker < MWF-TICKER-MAX AND
+     distance move-friend > 3
+  [
+    set _decision "move-with-friend"
+    set move-with-friend-ticker move-with-friend-ticker + 1
+    report _decision
+  ]
+
+  if find-new-place-ticker > 0 AND
+     find-new-place-ticker < FNP-TICKER-MAX AND
+     distance new-place > 3
+  [
+    set _decision "find-new-place"
+    set find-new-place-ticker find-new-place-ticker + 1
+    report _decision
+  ]
+
+  if move-with-friend-ticker >= MWF-TICKER-MAX
+  [
+    set move-with-friend-ticker 0
+  ]
+
+  if find-new-place-ticker >= FNP-TICKER-MAX
+  [
+    set find-new-place-ticker 0
+  ]
 
   let _quantity_harvest_neighbor decide-harvest best-neighboring-patch
   let _quantity_harvest_visible decide-harvest best-visible-patch
@@ -770,10 +828,37 @@ to-report decide-move
   ]
 
   let _actions ["stay" "move-alone" "move-with-friend" ]
-  let _probs (list  _prob_stay _prob_move_alone _prob_move_with_friend )
-  debugging "move" (list "DECIDE-MOVE:stay:move-alone:move-with-friend" _prob_stay ":" _prob_move_alone ":" _prob_move_with_friend)
+  let _probs (list  _prob_stay _prob_move_alone _prob_move_with_friend)
+ ;; debugging "move" (list "DECIDE-MOVE:stay:move-alone:move-with-friend" _prob_stay ":" _prob_move_alone ":" _prob_move_with_friend)
 
-  let _decision decide _probs _actions
+  set _decision decide _probs _actions
+
+
+  ;; IF TOO MANY HUNGRY SCRAP THIS i'M GOING ELSEWHERE
+  ;;  OR TOO MANY TURTLES
+  let _turtles_1 turtles in-radius turtle-vision with [ hungry? = true ]
+  let _turtles_2 turtles in-radius turtle-vision
+  let _max count patches in-radius turtle-vision
+  let _me self
+  let _new-place one-of patches
+  ;; if count _turtles_1 > ( FIND-NEW-PLACE-PCT * _max )[
+  if count _turtles_1 >= 1
+   or count _turtles_2 > ( 0.8 * _max )
+  [
+    debugging "move" (list "DECIDE-MOVE FIND NEW PLACE: find new place " _new-place)
+    set _decision "find-new-place"
+    set new-place _new-place
+  ]
+
+  if  _decision = "move-with-friend" [
+    set move-with-friend-ticker 1
+    set move-friend best-visible-turtle
+  ]
+  if  _decision = "find-new-place" [
+    set find-new-place-ticker 1
+    set new-place  _new-place
+  ]
+
   report _decision
 end
 
@@ -781,12 +866,23 @@ end
 to stay
 end
 
-to move-with-friend ;; [ friend ]
+to find-new-place [ a-patch ]
+  face a-patch
+  fd MIN-TURTLE-DISTANCE
+  let _loop 0
+  while [ any? other turtles-here and _loop < 10] [
+    reposition
+    set _loop _loop + 1
+  ]
+  set find-new-place-ticker find-new-place-ticker + 1
+end
+
+to move-with-friend [ friend ]
   ;; TODO : move in the direction of friend
   debugging "move" (list "MOVE-WITH-FRIEND:best-visible-turtle " best-visible-turtle)
-  ifelse best-visible-turtle  != nobody
+  ifelse friend  != nobody
   [
-    face best-visible-turtle
+    face friend
     fd MIN-TURTLE-DISTANCE
     let _loop 0
     while [ any? other turtles-here and _loop < 10] [
@@ -796,6 +892,7 @@ to move-with-friend ;; [ friend ]
   ][
     move-alone
   ]
+  set move-with-friend-ticker move-with-friend-ticker + 1
 end
 
 to move-alone ;; [ patch-to-move-to ]
@@ -1119,12 +1216,11 @@ to setup-network
   if network-type = "one-community" [one-community]
   if network-type = "preferential-attachment" [preferential-attachment]
   ask links [
-    show-link
+    ifelse show-link?  [ show-link ] [ hide-link ]
     set strength (1 + random-normal (MAX-LINK-STRENGTH / 2) 1)
     ;; set label strength ;; if you don't want to see the strength value on every link please comment this line
     set label-color white
   ]
-  ;;ask links [hide-link] ;; this is for hidding links
 end
 
 to no-network
@@ -1455,9 +1551,9 @@ end
 ;;; <--- NOT USED
 @#$#@#$#@
 GRAPHICS-WINDOW
-206
+207
 10
-643
+644
 448
 -1
 -1
@@ -1524,7 +1620,7 @@ nb-villagers
 nb-villagers
 1
 500
-141.0
+101.0
 10
 1
 NIL
@@ -1603,7 +1699,7 @@ wiring-probability
 wiring-probability
 0
 0.2
-0.166
+0.16599
 0.00001
 1
 NIL
@@ -1692,7 +1788,7 @@ SWITCH
 571
 debugging-agentset?
 debugging-agentset?
-0
+1
 1
 -1000
 
@@ -1705,7 +1801,7 @@ debugging-agentset-nb
 debugging-agentset-nb
 1
 10
-1.0
+2.0
 1
 1
 NIL
@@ -1831,7 +1927,7 @@ CHOOSER
 regrowth-chooser
 regrowth-chooser
 "with-depletion" "always-regrow"
-0
+1
 
 PLOT
 902
@@ -1860,7 +1956,7 @@ CHOOSER
 color-chooser
 color-chooser
 "turtle-backpack" "turtle-resource-ticker" "turtle-hunger-ticker" "turtle-connectivity"
-3
+0
 
 TEXTBOX
 17
@@ -1934,16 +2030,6 @@ NIL
 NIL
 1
 
-CHOOSER
-703
-647
-892
-692
-size-chooser
-size-chooser
-"default" "turtle-backpack" "turtle-connectivity"
-2
-
 TEXTBOX
 707
 628
@@ -1955,12 +2041,12 @@ Visuals
 1
 
 BUTTON
-761
+702
 744
-816
+757
 777
-Size
-set-size
+Color
+set-color
 NIL
 1
 T
@@ -1971,13 +2057,24 @@ NIL
 NIL
 1
 
+SWITCH
+704
+646
+842
+679
+show-link?
+show-link?
+1
+1
+-1000
+
 BUTTON
-702
-744
-757
-777
-Color
-set-color
+19
+367
+171
+400
+Reset Simulation
+reset-current
 NIL
 1
 T
