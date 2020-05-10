@@ -5,24 +5,24 @@ Out-link-neighbors
  link-neighbors
 
 
- to go
-    ask turtles [    
-      set neighbours turtle-set turtles in-radius neighbourhood
-      set turtle-dim-similar min-one-of other neighbours [myfunc myself self]
-      create-link-with turtle-dim-similar  
-    ]
 
-   set beasts sort-by [[who] of ?1 < [who] of ?2] turtles 
-   foreach beasts [ 
-       ask ? [ ;; each agent undertakes the list of commands 
-           set closest sort [link-neighbors] of turtle who 
-           print (word "id:" who " ; val1:" value1 " ; val2:" value2 " ; closest:" closest) 
-       ] 
-   ]
- end
 
  https://stackoverflow.com/questions/27488185/netlogo-flocking-to-others-in-agentset-as-opposed-to-all-turtles?rq=1
 
  https://stackoverflow.com/questions/47877069/adding-agentset-from-different-agents-togother-into-a-let
  
  https://stackoverflow.com/questions/8425518/netlogo-two-agentsets-operations
+
+ OLD PROCEDURES SAVED
+
+   ;; turtle will check state of the patch based on her memory and the memory of her linked neighbors
+  ;; get-patch-variation returns a list of values
+  ;; (list 0: _decrease? 1: _depleted-maybe? 2:_percent-variation 3:_total-variation _4:group-max 5:_group-min )
+  ;; position in list begins at 0
+
+  ;;let _patch-max-ever [ patch-max-resource ] of a-patch                         ;; maximum of resource possible on this patch
+  ;;let _patch-min-or-depleted [ min-to-regrow * patch-max-resource ] of a-patch  ;; minimum of resource that needs to be left for that patch to regrow
+  ;;let _patch-current [ patch-resource ] of a-patch                              ;; current amount of resource on the patch
+  ;;let _patch-max-to-harvest min list _patch-current turtle-harvest                   ;; what's the maxium the turtle can harvest on this patch
+  ;;let _patch-safe-to-harvest max list 0 _patch-current - _patch-min-or-depleted      ;; what is a safe value to harvest for not depleting patch
+  ;;let _turtle-safe-to-harvest turtle-hunger                                     ;; if each turtle consumes only what it needs to eat, the thing should be sustainable
