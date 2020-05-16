@@ -78,6 +78,7 @@ patches-own ;; this is the patches of resources
                       ; all % are between 0 and 1
   patch-max-resource  ; the maximum amount of resource this patch can hold
   patch-id            ; uniquely identifies the patchs
+  initial-patch-resource ; used to reset simulation to initial values
 
   ;; CURRENT STATUS AND AMOUNT OF REGROWTH
   ;;========================================
@@ -279,17 +280,24 @@ to setup
   reset-ticks
 end
 
-to reset-current
+to reset-simulation
   ask patches [
-    set patch-resource patch-max-resource
+    set patch-resource initial-patch-resource
     set patch-regrowth  0     ; amount of regrowth this tick
     set depleted? false
+    set-patch-color
   ]
   ask turtles [
    setup-each-turtle
+   set-turtle-color
+   set label ""
+  ]
+  ask links [
+    ifelse show-link?  [ show-link ] [ hide-link ]
   ]
   reset-ticks
   clear-all-plots
+
 end
 
 to setup-turtles
@@ -490,7 +498,9 @@ to setup-patches
      set patch-max-resource patch-resource      ;; initial resource level is also maximum
      set-patch-color
      set depleted? false
+     set initial-patch-resource patch-resource    ;; saving the initial configuration
   ]
+
 end
 
 to set-patch-color ;; patch proc
@@ -526,6 +536,7 @@ to highlight-hubs [ some-turtles ]
   ifelse some-turtles = turtles [
     ask turtles [
       set-turtle-color-by-hub _min _max
+      set-turtle-size-connectivity
     ]
   ][
     ask some-turtles [
@@ -991,6 +1002,7 @@ to-report decide-harvest-sustainable [ a-patch ]  ;; turtle proc
   ;; the turtle only harvest what she needs to eat + a little bit to cope with time where she is on an empty patch
 
   let _turtle-minimum-sustainable ( turtle-hunger +  ( MIN-RSC-SAVING-PCT * turtle-hunger ))
+  let _turtle_minimum-sustainable min list _turtle-minimum-sustainable turtle-harvest
   let _quantity-harvested min list _turtle-minimum-sustainable [ patch-resource ] of a-patch
 
   debugging "harvest" (list "DECIDE-HARVEST-SUSTAINABLE:_decision " _quantity-harvested " on patch " a-patch " containing this amount of resource " [ patch-resource ] of a-patch )
@@ -1109,6 +1121,9 @@ end
 to-report ask-for-food [ a-turtle quantity ]
   ;; For now if the turtle requested has food it will give it
   ;; FUTURE : the probability to give is related to the strength of the bond between the 2 turtles
+  if a-turtle = nobody [
+    report 0
+  ]
 
   let _available min list quantity [ turtle-resource] of a-turtle
   ask a-turtle [
@@ -1578,23 +1593,6 @@ ticks
 30.0
 
 BUTTON
-17
-22
-91
-55
-NIL
-Setup
-NIL
-1
-T
-OBSERVER
-NIL
-NIL
-NIL
-NIL
-1
-
-BUTTON
 107
 22
 170
@@ -1620,7 +1618,7 @@ nb-villagers
 nb-villagers
 1
 500
-101.0
+141.0
 10
 1
 NIL
@@ -1816,7 +1814,7 @@ INIT-HARVEST-LEVEL
 INIT-HARVEST-LEVEL
 0
 1
-0.9
+1.0
 0.05
 1
 NIL
@@ -1861,7 +1859,7 @@ SWITCH
 135
 adaptive-harvest?
 adaptive-harvest?
-1
+0
 1
 -1000
 
@@ -1986,8 +1984,8 @@ SLIDER
 MIN-RSC-SAVING-PCT
 MIN-RSC-SAVING-PCT
 0
-50
-0.05
+3
+3.0
 0.05
 1
 NIL
@@ -2064,7 +2062,7 @@ SWITCH
 679
 show-link?
 show-link?
-1
+0
 1
 -1000
 
@@ -2074,7 +2072,24 @@ BUTTON
 171
 400
 Reset Simulation
-reset-current
+reset-simulation
+NIL
+1
+T
+OBSERVER
+NIL
+NIL
+NIL
+NIL
+1
+
+BUTTON
+20
+21
+93
+54
+NIL
+setup
 NIL
 1
 T
