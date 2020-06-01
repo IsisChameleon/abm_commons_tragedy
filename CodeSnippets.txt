@@ -13,16 +13,52 @@ Out-link-neighbors
  
  https://stackoverflow.com/questions/8425518/netlogo-two-agentsets-operations
 
- OLD PROCEDURES SAVED
 
-   ;; turtle will check state of the patch based on her memory and the memory of her linked neighbors
-  ;; get-patch-variation returns a list of values
-  ;; (list 0: _decrease? 1: _depleted-maybe? 2:_percent-variation 3:_total-variation _4:group-max 5:_group-min )
-  ;; position in list begins at 0
+https://stackoverflow.com/questions/45249528/how-do-i-plot-a-sorted-array-in-netlogo
+ to plotByOrder
+  clear-plot
+  let pts sort [point] of turtles
+  foreach pts [[pt] -> plot pt]
+end
 
-  ;;let _patch-max-ever [ patch-max-resource ] of a-patch                         ;; maximum of resource possible on this patch
-  ;;let _patch-min-or-depleted [ min-to-regrow * patch-max-resource ] of a-patch  ;; minimum of resource that needs to be left for that patch to regrow
-  ;;let _patch-current [ patch-resource ] of a-patch                              ;; current amount of resource on the patch
-  ;;let _patch-max-to-harvest min list _patch-current turtle-harvest                   ;; what's the maxium the turtle can harvest on this patch
-  ;;let _patch-safe-to-harvest max list 0 _patch-current - _patch-min-or-depleted      ;; what is a safe value to harvest for not depleting patch
-  ;;let _turtle-safe-to-harvest turtle-hunger                                     ;; if each turtle consumes only what it needs to eat, the thing should be sustainable
+https://stackoverflow.com/questions/49813349/using-lists-vs-agentsets
+
+
+    you use lists for an ordered collection of agents and sets for an unordered collection. I feel there is more to it though.
+Ordered vs. unordered is an important difference, but there is another crucial one: lists can contain duplicate items, agentsets cannot.
+    I do not know how to properly implement an equivalent to filter or map using ask.
+
+You don't need to implement those: they already exist!
+
+The agentset version of filter is with:
+
+my-agent-set with [ color = red ]
+
+is the same as:
+
+filter [ a -> [ color = red ] of a ] my-agent-list
+
+The agentset version of map is of:
+
+[ color ] of my-agent-set
+
+is the same as:
+
+map [ a -> [ color ] of a ] my-agent-list
+
+And, as you may have intuited by now, ask is the equivalent of foreach.
+Grasping these similarities is an important step towards NetLogo enlightenment. (Or even general programming enlightenment.)
+The idea of unifying (or somehow generalizing) the syntax and primitives for these two types of collection has been discussed before (e.g., here and here), but that kind of big language change tends not to happen very often.
+
+
+
+
+
+set-current-plot-pen penname
+
+
+new_df.loc['a', ('data1', 'two')]
+
+
+
+
