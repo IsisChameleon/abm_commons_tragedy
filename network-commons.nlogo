@@ -54,6 +54,7 @@ globals
   ;; (slider) PRL-TICKER-START    ;- THE TICKER starts ticking when total friends patch resource level drops below PRL-TICKER-START% of the maximum recorded PRL
   ;; (slider) PRL-TICKER-STOP     ;- THE TICKER stops ticking when total friends patch resource level raise above PRL-TICKER-STOP% of the maximum recorded PRL
   ;; (slider) PRL-TICKER-MAX      ;- when the ticker has been active for PRL-TICKER-MAX ticks, the alert is raised and turtle-group is asked to lower harvest
+  PRL-RESULT-TICKER-MAX           ; number of tick the turtle needs to wait to check the result of her command
 
   ;; (slider) INCREASE-PCT        ; pct increase when asked to harvest a bit more
   ;; (slider) DECREASE-PCT        ; pct decrease when asked to harvest a bit less
@@ -117,6 +118,7 @@ turtles-own
   ;; MESSAGING & CONNECTIVITY
   ;;=========================
   turtle-test-hub                 ; count of how many messages that turtle has received when testing for hubs
+  community                       ; turtle louvain community as detected by nw:louvain-community
 
   ;; MOVE
   ;;=====
@@ -128,17 +130,19 @@ turtles-own
 
   ;; MEMORY AND STRATEGY, ALERTING LEVELS
   ;;=====================================
-  turtle-hunger-level         ; each tick the turtle is hungry consecutively it adds 1, each tick the turtle is not hungry it removes 1 (with a min of zero)
-  dead?                       ; turtle is dead
+  turtle-hunger-level          ; each tick the turtle is hungry consecutively it adds 1, each tick the turtle is not hungry it removes 1 (with a min of zero)
+  dead?                        ; turtle is dead
 
-  hungry?                     ; set to true when a turtle cannot consume "turtle-hunger" amount of resource in one tick
-  hungry-friends-count        ; amount of friends that have told they are hungry
-  hfc-ticker                  ; start counting every tick hungry-friends-count is above a certain treshold HFC-TICKER-START
-                              ; stop counting when number of hungry friends HFC-TICKER-STOP
-                              ; alert people when ticker reached HFC-TICKER-MAX to consume more
-  prl-ticker                  ; a ticker that increments by 1 each tick when total resources found on all friends patches (turtle-group-and-me) trigger alert levels
-  current-prl                 ; calculated total amount of resources currently available on the patches where all the group (turtle-group-and-me) is
-  max-prl                     ; maximum amount of of resource ever seen on the patches of myself and all my friends (=turtle-group-and-me), prl = Patch Resource Level:
+  hungry?                      ; set to true when a turtle cannot consume "turtle-hunger" amount of resource in one tick
+  hungry-friends-count         ; amount of friends that have told they are hungry
+  hfc-ticker                   ; start counting every tick hungry-friends-count is above a certain treshold HFC-TICKER-START
+                               ; stop counting when number of hungry friends HFC-TICKER-STOP
+                               ; alert people when ticker reached HFC-TICKER-MAX to consume more
+  prl-ticker                   ; a ticker that increments by 1 each tick when total resources found on all friends patches (turtle-group-and-me) trigger alert levels
+  prl-result-ticker            ; a ticker that counts the number of ticks until the turtle checks if her command to harvest less have worked
+  prl-result-current-situation ; current level of resources on the turtle group patches when the turtle request to harvest less
+  current-prl                  ; calculated total amount of resources currently available on the patches where all the group (turtle-group-and-me) is
+  max-prl                      ; maximum amount of of resource ever seen on the patches of myself and all my friends (=turtle-group-and-me), prl = Patch Resource Level:
 
   ;; OBSERVE WORLD, MOVEMENT
   ;;==========================
@@ -151,6 +155,7 @@ turtles-own
   best-visible-turtle    ;; identify 1 turtle or None (with max link strength)
 
   ;; NOT USED
+  ;;===========
     turtle-memory                   ; turtle's memory  ;; NOT USED
     turtle-memory-size       ; size of a turtle's memory (;; NOT USED)
     has-moved?                  ; set to true when a turtle has move. reset to false at the end of Go
@@ -185,7 +190,7 @@ to debugging [ proc-name list-values ]
         ]
       ]
     ][
-      if  proc-name = "REPORTER" [;; or proc-name-chooser = "all" or proc-name = "subproc" [
+      if  proc-name = "message" [;; or proc-name-chooser = "all" or proc-name = "subproc" [
         ;;if random-float 1 < DEBUG-RATE [
           output-type but-last list-values
           output-show last list-values
@@ -252,6 +257,7 @@ to initialize-globals
   ;; NOW A SLIDER set PRL-TICKER-START 0.5
   ;; NOW A SLIDER set PRL-TICKER-STOP 0.7
   ;; NOW A SLIDER set PRL-TICKER-MAX 10
+  set PRL-RESULT-TICKER-MAX 3
   ;; NOW A SLIDER set INCREASE-PCT 0.1
   ;; NOW A SLIDER set DECREASE-PCT 0.1
 
@@ -325,6 +331,7 @@ to setup-each-turtle
   set turtle-wealth 0
   set hfc-ticker 0
   set prl-ticker 0
+  set prl-result-ticker 0
   set move-with-friend-ticker 0
   set find-new-place-ticker 0
   set max-prl 0
@@ -342,6 +349,7 @@ to die-if-too-hungry   ;; turtle proc
     if turtle-hunger-level >= HGR-TICKER-MAX [
       ;; set hidden? true
       set shape "x"
+      set size 0.5
       set color red
       set label "dead"
       set dead? true
@@ -349,6 +357,7 @@ to die-if-too-hungry   ;; turtle proc
       set turtle-wealth 0
       set hfc-ticker 0
       set prl-ticker 0
+      set prl-result-ticker 0
       set move-with-friend-ticker 0
       set find-new-place-ticker 0
       set max-prl 0
@@ -417,6 +426,9 @@ to set-turtle-color
     let _max [ turtle-test-hub ] of max-one-of turtles [ turtle-test-hub ]
     set-turtle-color-by-hub  _min _max
     set-turtle-size-connectivity
+  ]
+  if color-chooser = "louvain-community" [
+     ;; set-turtle-louvain-community   DOESN'T WORK YET
   ]
   if color-chooser = "turtle-resource-ticker" [
     if prl-ticker = 0 [
@@ -618,6 +630,19 @@ to set-turtle-test-hub
   ]
 end
 
+to set-turtle-louvain-community
+  ;; doesn't work with dead turtles
+  let _communities nw:louvain-communities
+  ;;let _colors sublist  0 (length _communities)  ###
+  let _colors palette:scheme-colors "Divergent" "Spectral" length _communities
+  ( foreach _communities _colors [ [comm col ] ->
+    ask comm [
+      set community comm
+      set color col
+    ]
+  ] )
+end
+
 ;;to reset-hub
 ;;  ask turtles [
 ;;   set-turtle-color
@@ -637,6 +662,12 @@ to save-setup
 end
 
 to save-network
+  let _r random 100000000
+  let _filename_1 (word "./networks/network-gml-" _r ".txt" )
+  ;; https://networkx.github.io/documentation/networkx-1.9.1/reference/readwrite.gml.html
+  nw:save-gml _filename_1
+  let _filename_2 (word "./networks/network-graphml-" _r ".txt" )
+  nw:save-graphml _filename_2
 end
 
 to save-patches
@@ -666,7 +697,6 @@ to go
     set-turtle-color
     reset-alert
     die-if-too-hungry
-    ;; change-strategy
   ]
 
   ask patches [
@@ -815,9 +845,10 @@ to-report decide-move
   ;; if that friend has the max strength link
   ;; the probabilities for moving alone or staying are scaled down to "make room" for the moving with friend probability
 
-  ;; if turtles already following a friend
 
   let _decision ""
+
+  ;; if already looking for a new place or following a friend, the turtle keep to her decision until the ticker is reached
 
   if move-with-friend-ticker > 0 AND
      move-with-friend-ticker < MWF-TICKER-MAX AND
@@ -846,6 +877,11 @@ to-report decide-move
   [
     set find-new-place-ticker 0
   ]
+
+  ;; if not yet followind a friend or reaching for a new place, the turtle needs to decide
+  ;; it decided based on what it would harvest between the different locations
+  ;; either staying around and harvesting the best neighbouring patch
+  ;; or moving to best visible patch
 
   let _quantity_harvest_neighbor decide-harvest best-neighboring-patch
   let _quantity_harvest_visible decide-harvest best-visible-patch
@@ -891,12 +927,11 @@ to-report decide-move
   set _decision decide _probs _actions
 
 
-  ;; IF TOO MANY HUNGRY SCRAP THIS i'M GOING ELSEWHERE
+  ;; IF TOO MANY HUNGRY    : SCRAP THIS i'M GOING ELSEWHERE AT RANDOM
   ;;  OR TOO MANY TURTLES
   let _turtles_1 turtles-alive in-radius turtle-vision with [ hungry? = true ]
   let _turtles_2 turtles-alive in-radius turtle-vision
   let _max count patches in-radius turtle-vision
-  let _me self
   let _new-place one-of patches
   ;; if count _turtles_1 > ( FIND-NEW-PLACE-PCT * _max )[
   if count _turtles_1 >= 4
@@ -970,18 +1005,12 @@ to move-at-random  ;; turtle proc
   while [ any? other turtles-here ] [ move-at-random ]
 end
 
-;;to-report detect-overlapping
-  ;; in-radius is used to improve speed, as suggested in GasLab Circlular Particles model
-  ;;report any? other turtles in-radius turtle-vision with [distance myself < MIN-TURTLE-DISTANCE]
-;;end
 
 to reposition
   move-to one-of neighbors
 end
 
-;;to reposition2 [ target ] ;;; STARTED NOT FINISHED : IDEA MOVE TO NEIGHTBOUR CLOSED TO TARGET (TARGET =A -TURTLE OR A-PATCH)
-;;  move-to one-of neighbors min-one-of distance [ target ]
-;; end
+
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;     M  E  S  S  A  G  E  S
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
@@ -989,23 +1018,60 @@ end
 to harvest-a-bit [ action some-turtles percentage ]  ;; turtle proc
   debugging "message" (list "HARVEST-A-BIT " action " by pct " percentage " for # " count some-turtles)
   let _turtle-current-harvest-request turtle-current-harvest
+  let _requesting-turtle self
   ask some-turtles [
-    if  action = "more" [
+    let _bond-strength get-link-strength-with _requesting-turtle
+    let _actual-percentage will-turtle-do-it _bond-strength percentage
+    ;; actual-percentage : actual percentage that the turtle is going to harvest min or more
+    if  action = "more"  [
         ;; turtle will increase harvesting up to the max they can harvest (turtle-harvest)
         debugging "message" ( list "HARVEST-A-BIT " action ": current harvest request: " _turtle-current-harvest-request)
-        set _turtle-current-harvest-request min list (turtle-current-harvest + percentage * turtle-current-harvest) turtle-harvest
-        debugging "message" ( list "HARVEST-A-BIT " action ": amount requested to add:" (percentage * turtle-current-harvest) "-new harvest request: " _turtle-current-harvest-request)
+        set _turtle-current-harvest-request min list (turtle-current-harvest + _actual-percentage * turtle-current-harvest) turtle-harvest
+        debugging "message" ( list "HARVEST-A-BIT " action ": amount requested to add:" (_actual-percentage * turtle-current-harvest) "-new harvest request: " _turtle-current-harvest-request)
     ]
-    if action = "less" [
+    if action = "less"  [
         debugging "message" ( list "HARVEST-A-BIT " action ": current harvest request: " _turtle-current-harvest-request)
-        set _turtle-current-harvest-request max list (turtle-current-harvest - percentage * turtle-current-harvest) 0
-        debugging "message" ( list "HARVEST-A-BIT " action ": amount requested to subtract:" (percentage * turtle-current-harvest) "-new harvest request: " _turtle-current-harvest-request)
+        set _turtle-current-harvest-request max list (turtle-current-harvest - _actual-percentage * turtle-current-harvest) 0
+        debugging "message" ( list "HARVEST-A-BIT " action ": amount requested to subtract:" (_actual-percentage * turtle-current-harvest) "-new harvest request: " _turtle-current-harvest-request)
     ]
     ;; at the moment we consider that the turtle is going to "obey"
     ;; FUTURE : in the improvments we can get the turtle to do what it's told in proportion to the strength
     ;; of the link between the turtle and the originator of the message
     set turtle-current-harvest _turtle-current-harvest-request
   ]
+end
+
+to-report will-turtle-do-it [ bond-strength percentage ]  ;; called by a turtle
+  let _actual-percentage 0
+  let _prob-do-it 0
+
+  ifelse link-strength-impact-obey? [
+    ;; do what you're told more likely when the link is strong
+    set _prob-do-it ( bond-strength / MAX-LINK-STRENGTH )
+  ][
+    set _prob-do-it 1
+    ;; always do what you're told
+  ]
+
+  let _do? random-float 1
+  let p 0
+  ifelse _do? <= _prob-do-it
+  [
+    let _mean 0
+    let _bond-strength bond-strength
+    if _bond-strength = 0 [ set _bond-strength 0.1 ]
+    let _standard-deviation (  ( 1 / 3 ) * ( MAX-LINK-STRENGTH / ( 2 * _bond-strength ) )  )
+    set p random-normal _mean _standard-deviation
+    if p > 1 [ set p 1 ]
+    if p < -1 [ set p -1 ]
+    set _actual-percentage ( percentage + ( p * percentage ) )
+  ][
+    debugging "message" (list "WILL-TURTLE-DO-IT: Nah I won't do it , strength:" bond-strength "-actual-percentage: (should be 0)" _actual-percentage )
+  ]
+
+  debugging "message" (list "WILL-TURTLE-DO-IT:  percentage:" percentage "-strength:" bond-strength "-actual-percentage:" _actual-percentage )
+
+  report _actual-percentage
 end
 
 to message-im-hungry [ some-turtles ]
@@ -1018,21 +1084,6 @@ end
 to message-im-not-hungry-anymore [ some-turtles ]
   ask some-turtles [
     set hungry-friends-count max list ( hungry-friends-count - 1 ) 0
-  ]
-end
-
-to-report turtles-that-listen-to-me [ a-turtle radius ]
-    ;; reports an agentset of turtles that are linked to a-turtle by "radius" nodes
-    ;; e.g if radius is zero returns a-turtle
-    ;; if radius is 1 returns all turtles that are linked directly to that turtle
-    ;; if radius is 2 returns all turtles that are 1  or 2 links away from a-turtle
-    ;; let _turtles ...
-    ;; report _turtles
-  if radius = 0 [
-    report nobody
-  ]
-  if radius = 1 [
-    report link-neighbors
   ]
 end
 
@@ -1208,42 +1259,65 @@ to memorize-patches-resource-of-my-friends
   if _current-prl > max-prl[
     set max-prl _current-prl
   ]
-  ifelse prl-ticker = 0 [
-    debugging "adaptive" (list "MEMORIZE-PATCHES-RESOURCE-OF-MY-FRIENDS: ticker null current prl " _current-prl "-start level:" (PRL-TICKER-START * max-prl))
-    if _current-prl <= ( PRL-TICKER-START * max-prl) [
-      set prl-ticker prl-ticker + 1
-    ]
-  ][
-    debugging "adaptive" (list "MEMORIZE-PATCHES-RESOURCE-OF-MY-FRIENDS: ticker NOT null current prl " _current-prl "-stop level:" (PRL-TICKER-STOP * max-prl))
-    ifelse _current-prl > (PRL-TICKER-STOP * max-prl) [
-      set prl-ticker 0
+
+  ifelse prl-result-ticker > 0 [
+    ;; if turtle has recently sent an alert and should watch what's going on
+    ifelse prl-result-ticker = PRL-RESULT-TICKER-MAX [ ;;  if it's time to check the situation
+      debugging "message" (list "PRL-CHECKS: time to check the situation again")
+      ifelse _current-prl <= prl-result-current-situation [   ;; if there's no improvement
+        debugging "message" (list "PRL-CHECKS: damn no better current-prl: " current-prl "-prl-result-current-situation:" prl-result-current-situation )
+        harvest-a-bit  "less" turtle-group-and-me DECREASE-PCT                ;; Turtle is asking again to harvest less
+        set prl-result-ticker 1 ;; turtle will see if situation improves
+      ][
+        set prl-result-ticker 0 ;; turtle is happy her actions have worked
+      ]
     ][
-      set prl-ticker prl-ticker + 1
+      set prl-result-ticker prl-result-ticker + 1     ;; too early to say
     ]
   ]
-  if prl-ticker = PRL-TICKER-MAX [
-    debugging "adaptive" (list "ALERT:")
-    debugging "adaptive" (list "MEMORIZE-PATCHES-RESOURCE-OF-MY-FRIENDS: requesting " count turtle-group-and-me " of my friends to harvest a bit LESS " )
-    harvest-a-bit  "less" turtle-group-and-me DECREASE-PCT                ;; Turtle is asking her turtle group to harvest more but also herself.
+  [
+  ;; if turtle doesn't worry yet, should it?
+    ifelse prl-ticker = 0 [
+      ;; debugging "message" (list "MEMORIZE-PATCHES-RESOURCE-OF-MY-FRIENDS: ticker null current prl " _current-prl "-start level:" (PRL-TICKER-START * max-prl))
+      if _current-prl <= ( PRL-TICKER-START * max-prl) [
+        set prl-ticker prl-ticker + 1
+      ]
+    ][
+      ;; if the turtle is worrying should it stop?
+      ;; debugging "adaptive" (list "MEMORIZE-PATCHES-RESOURCE-OF-MY-FRIENDS: ticker NOT null current prl " _current-prl "-stop level:" (PRL-TICKER-STOP * max-prl))
+      ifelse _current-prl > (PRL-TICKER-STOP * max-prl) [
+        set prl-ticker 0
+      ][
+        set prl-ticker prl-ticker + 1
+      ]
+    ]
+    ;; if the turtle has been worrying for too long it raises alert
+    if prl-ticker = PRL-TICKER-MAX [
+      debugging "message" (list "ALERT:")
+      debugging "message" (list "MEMORIZE-PATCHES-RESOURCE-OF-MY-FRIENDS: requesting " count turtle-group-and-me " of my friends to harvest a bit LESS " )
+      harvest-a-bit  "less" turtle-group-and-me DECREASE-PCT                ;; Turtle is asking her turtle group to harvest less
+      set prl-result-ticker 1 ;; turtle will see if situation improves
+      set prl-result-current-situation _current-prl
+    ]
   ]
   ;; the reset of prl-ticker is done at the end of the to go procedure in "reset-alert"
 end
 
 to memorize-hungry-friends-count
   ifelse hfc-ticker = 0 [
-    if hungry-friends-count > ( HFC-TICKER-START * count turtle-group )[
+    if hungry-friends-count > ( HFC-TICKER-START * ( count turtle-group-and-me ) )[
       set hfc-ticker hfc-ticker + 1
     ]
   ][
-    ifelse hungry-friends-count <= ( HFC-TICKER-STOP * count turtle-group ) [
+    ifelse hungry-friends-count <= ( HFC-TICKER-STOP * ( count turtle-group-and-me ) ) [
       set hfc-ticker 0
     ][
       set hfc-ticker hfc-ticker + 1
     ]
   ]
   if hfc-ticker = HFC-TICKER-MAX [
-    debugging "adaptive" (list "ALERT:")
-    debugging "adaptive" (list "MEMORIZE-HUNGRY-FRIENDS-COUNT: requesting " count turtle-group-and-me " of my friends to harvest a bit more " )
+    debugging "message" (list "ALERT:")
+    debugging "message" (list "MEMORIZE-HUNGRY-FRIENDS-COUNT: requesting " count turtle-group-and-me " of my friends to harvest a bit more " )
     harvest-a-bit  "more" turtle-group-and-me INCREASE-PCT                ;; Turtle is asking her turtle group to harvest more but also herself.
   ]
   ;; the reset of hfc-ticker is done at the end of the to go procedure
@@ -1424,6 +1498,20 @@ end
 ;;     Down from here ---- > P R O C E D U R E S    N O T    U S E D    F O R    N O W
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+to-report turtles-that-listen-to-me [ a-turtle radius ]
+    ;; reports an agentset of turtles that are linked to a-turtle by "radius" nodes
+    ;; e.g if radius is zero returns a-turtle
+    ;; if radius is 1 returns all turtles that are linked directly to that turtle
+    ;; if radius is 2 returns all turtles that are 1  or 2 links away from a-turtle
+    ;; let _turtles ...
+    ;; report _turtles
+  if radius = 0 [
+    report nobody
+  ]
+  if radius = 1 [
+    report link-neighbors
+  ]
+end
 
 to-report decide-harvest-max [ a-patch ]  ;; turtle proc
 
@@ -1717,10 +1805,10 @@ ticks
 30.0
 
 BUTTON
-107
-22
-170
-55
+97
+11
+160
+44
 NIL
 Go
 T
@@ -1740,9 +1828,9 @@ SLIDER
 150
 nb-villagers
 nb-villagers
-140
+3
 500
-500.0
+3.0
 1
 1
 NIL
@@ -1813,25 +1901,25 @@ NIL
 HORIZONTAL
 
 SLIDER
-9
-629
-192
-662
+14
+684
+197
+717
 wiring-probability
 wiring-probability
 0
 0.2
-0.16599
+0.01667
 0.00001
 1
 NIL
 HORIZONTAL
 
 MONITOR
-7
-555
-65
-600
+12
+610
+70
+655
 max-deg
 max [count link-neighbors] of turtles
 1
@@ -1839,10 +1927,10 @@ max [count link-neighbors] of turtles
 11
 
 MONITOR
-67
-555
-124
-600
+72
+610
+129
+655
 min-deg
 min [count link-neighbors] of turtles
 1
@@ -1850,10 +1938,10 @@ min [count link-neighbors] of turtles
 11
 
 MONITOR
-128
-554
-185
-599
+133
+609
+190
+654
 nb links
 count links
 1
@@ -1861,25 +1949,25 @@ count links
 11
 
 CHOOSER
-7
-501
-188
-546
+12
+556
+193
+601
 network-type
 network-type
 "no-network" "random_prob" "one-community" "preferential-attachment"
 3
 
 SLIDER
-9
-681
-124
-714
+14
+736
+129
+769
 min-degree
 min-degree
 0
 10
-2.0
+1.0
 1
 1
 NIL
@@ -1910,7 +1998,7 @@ SWITCH
 161
 debugging-agentset?
 debugging-agentset?
-0
+1
 1
 -1000
 
@@ -1960,10 +2048,10 @@ NIL
 HORIZONTAL
 
 BUTTON
-11
-463
-80
-496
+16
+518
+85
+551
 Hubs
 highlight-hubs turtles
 NIL
@@ -1988,10 +2076,10 @@ adaptive-harvest?
 -1000
 
 BUTTON
-111
-464
-185
-497
+116
+519
+190
+552
 1 Hub
 highlight-hubs turtle-set one-of turtles with [dead? = false ]
 NIL
@@ -2077,24 +2165,24 @@ CHOOSER
 740
 color-chooser
 color-chooser
-"turtle-backpack" "turtle-resource-ticker" "turtle-hunger-ticker" "turtle-connectivity"
-1
+"turtle-backpack" "turtle-resource-ticker" "turtle-hunger-ticker" "turtle-connectivity" "louvain-community"
+0
 
 TEXTBOX
-11
-614
-161
-632
+16
+669
+166
+687
 For random network:
 12
 0.0
 1
 
 TEXTBOX
-10
-664
-186
-694
+15
+719
+191
+749
 For preferential network:
 12
 0.0
@@ -2109,7 +2197,7 @@ MIN-RSC-SAVING-PCT
 MIN-RSC-SAVING-PCT
 0
 3
-3.0
+0.0
 0.05
 1
 NIL
@@ -2186,15 +2274,15 @@ SWITCH
 693
 show-link?
 show-link?
-1
+0
 1
 -1000
 
 BUTTON
-7
-57
-192
-90
+8
+46
+193
+79
 Reset - Keep Land and Network
 reset-simulation
 NIL
@@ -2208,10 +2296,10 @@ NIL
 1
 
 BUTTON
-20
-21
-93
-54
+9
+10
+82
+43
 NIL
 setup
 NIL
@@ -2251,7 +2339,7 @@ true
 false
 "" ""
 PENS
-"default" 1.0 0 -16777216 true "" "plot-group-turtle-resource"
+"default" 1.0 1 -16777216 true "" "plot-group-turtle-resource"
 
 PLOT
 1287
@@ -2287,7 +2375,7 @@ true
 false
 "" ""
 PENS
-"default" 1.0 0 -10263788 true "" "plot-group-turtle-wealth"
+"default" 1.0 1 -10263788 true "" "plot-group-turtle-wealth"
 
 CHOOSER
 1667
@@ -2296,8 +2384,8 @@ CHOOSER
 211
 TURTLE-PROC-CHOOSER
 TURTLE-PROC-CHOOSER
-"REPORTER"
-0
+"REPORTER" "message"
+1
 
 SLIDER
 1346
@@ -2308,7 +2396,7 @@ PERCENT-BEST-LAND
 PERCENT-BEST-LAND
 0.01
 1
-0.04
+0.06
 0.01
 1
 NIL
@@ -2363,7 +2451,7 @@ FACTOR-DIV
 FACTOR-DIV
 1
 8
-4.0
+2.0
 1
 1
 NIL
@@ -2463,7 +2551,7 @@ PRL-TICKER-MAX
 PRL-TICKER-MAX
 2
 30
-10.0
+7.0
 1
 1
 NIL
@@ -2503,7 +2591,7 @@ DECREASE-PCT
 DECREASE-PCT
 0
 1
-0.1
+1.0
 0.1
 1
 NIL
@@ -2530,15 +2618,79 @@ Patches\nparameters:
 1
 
 SWITCH
-667
-239
-807
-272
+1556
+242
+1679
+275
 Turtles-die?
 Turtles-die?
 1
 1
 -1000
+
+PLOT
+1666
+303
+1891
+453
+Links strength distribution
+NIL
+NIL
+0.0
+10.0
+0.0
+10.0
+true
+false
+"" ""
+PENS
+"default" 1.0 1 -14730904 true "" "histogram [ strength ] of links"
+
+SWITCH
+11
+451
+184
+484
+link-strength-impact-obey?
+link-strength-impact-obey?
+0
+1
+-1000
+
+PLOT
+1670
+460
+1892
+610
+Hubs distribution
+NIL
+NIL
+0.0
+10.0
+0.0
+50.0
+true
+false
+"" ""
+PENS
+"default" 1.0 1 -10022847 true "" "histogram [ count turtle-group ] of turtles"
+
+BUTTON
+9
+81
+72
+114
+nw:save
+save-network
+NIL
+1
+T
+OBSERVER
+NIL
+NIL
+NIL
+NIL
+1
 
 @#$#@#$#@
 ## WHAT IS IT?
@@ -2959,10 +3111,10 @@ NetLogo 6.1.1
 @#$#@#$#@
 @#$#@#$#@
 <experiments>
-  <experiment name="experiment#1.3  500 turtles BACKPACK 3" repetitions="1" runMetricsEveryStep="true">
+  <experiment name="experiment#1.3 (demo)  500 turtles BACKPACK 3" repetitions="1" runMetricsEveryStep="true">
     <setup>setup</setup>
     <go>go</go>
-    <timeLimit steps="5000"/>
+    <timeLimit steps="10"/>
     <exitCondition>total-resource-reporter = 0</exitCondition>
     <metric>total-resource-reporter</metric>
     <metric>total-patch-regrowth</metric>
@@ -2978,6 +3130,8 @@ NetLogo 6.1.1
     </enumeratedValueSet>
     <enumeratedValueSet variable="nb-villagers">
       <value value="500"/>
+      <value value="600"/>
+      <value value="700"/>
     </enumeratedValueSet>
     <enumeratedValueSet variable="LINK-TRANSMISSION-DISTANCE">
       <value value="1"/>
@@ -3428,6 +3582,217 @@ NetLogo 6.1.1
     </enumeratedValueSet>
     <enumeratedValueSet variable="PERCENT-BEST-LAND">
       <value value="0.06"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="regrowth-chooser">
+      <value value="&quot;always-regrow&quot;"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="MAX-TURTLE-VISION">
+      <value value="8"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="DEBUG">
+      <value value="false"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="color-chooser">
+      <value value="&quot;turtle-hunger-ticker&quot;"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="HFC-TICKER-STOP">
+      <value value="0.3"/>
+    </enumeratedValueSet>
+  </experiment>
+  <experiment name="experiment demo" repetitions="1" runMetricsEveryStep="true">
+    <setup>setup</setup>
+    <go>go</go>
+    <timeLimit steps="500"/>
+    <exitCondition>total-resource-reporter = 0</exitCondition>
+    <metric>total-resource-reporter</metric>
+    <metric>total-patch-regrowth</metric>
+    <metric>total-turtle-resource-reporter</metric>
+    <metric>total-quantity-harvested</metric>
+    <metric>number-of-hungry-turtles</metric>
+    <metric>total-wealth</metric>
+    <metric>total-food-exchanged</metric>
+    <metric>group-turtle-resource</metric>
+    <metric>group-turtle-wealth</metric>
+    <metric>group-turtle-prl</metric>
+    <metric>group-turtle-hfc</metric>
+    <enumeratedValueSet variable="DECREASE-PCT">
+      <value value="0.1"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="min-degree">
+      <value value="2"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="adaptive-harvest?">
+      <value value="true"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="MAX-TURTLE-BACKPACK">
+      <value value="4"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="debugging-agentset?">
+      <value value="true"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="INIT-HARVEST-LEVEL">
+      <value value="1"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="DEBUG-RATE">
+      <value value="0.05"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="INCREASE-PCT">
+      <value value="0.1"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="debugging-agentset-nb">
+      <value value="1"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="HFC-TICKER-MAX">
+      <value value="10"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="nb-villagers">
+      <value value="250"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="show-link?">
+      <value value="true"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="LINK-TRANSMISSION-DISTANCE">
+      <value value="1"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="PRL-TICKER-MAX">
+      <value value="10"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="network-type">
+      <value value="&quot;preferential-attachment&quot;"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="PRL-TICKER-STOP">
+      <value value="0.7"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="HFC-TICKER-START">
+      <value value="0.5"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="MIN-RSC-SAVING-PCT">
+      <value value="3"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="FACTOR-DIV">
+      <value value="4"/>
+      <value value="3"/>
+      <value value="2"/>
+      <value value="1"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="TURTLE-PROC-CHOOSER">
+      <value value="&quot;REPORTER&quot;"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="wiring-probability">
+      <value value="0.16599"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="PRL-TICKER-START">
+      <value value="0.5"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="PERCENT-BEST-LAND">
+      <value value="0.04"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="Turtles-die?">
+      <value value="false"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="regrowth-chooser">
+      <value value="&quot;always-regrow&quot;"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="MAX-TURTLE-VISION">
+      <value value="8"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="DEBUG">
+      <value value="false"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="color-chooser">
+      <value value="&quot;turtle-hunger-ticker&quot;"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="HFC-TICKER-STOP">
+      <value value="0.3"/>
+    </enumeratedValueSet>
+  </experiment>
+  <experiment name="experiment #2.1 Network. min-degree 1 5 runs" repetitions="5" runMetricsEveryStep="true">
+    <setup>setup</setup>
+    <go>go</go>
+    <timeLimit steps="100"/>
+    <exitCondition>total-resource-reporter = 0</exitCondition>
+    <metric>total-resource-reporter</metric>
+    <metric>total-patch-regrowth</metric>
+    <metric>total-turtle-resource-reporter</metric>
+    <metric>total-quantity-harvested</metric>
+    <metric>number-of-hungry-turtles</metric>
+    <metric>total-wealth</metric>
+    <metric>total-food-exchanged</metric>
+    <metric>group-turtle-resource</metric>
+    <metric>group-turtle-wealth</metric>
+    <metric>group-turtle-prl</metric>
+    <metric>group-turtle-hfc</metric>
+    <enumeratedValueSet variable="DECREASE-PCT">
+      <value value="0.1"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="min-degree">
+      <value value="1"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="adaptive-harvest?">
+      <value value="true"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="MAX-TURTLE-BACKPACK">
+      <value value="4"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="debugging-agentset?">
+      <value value="true"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="INIT-HARVEST-LEVEL">
+      <value value="1"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="DEBUG-RATE">
+      <value value="0.05"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="INCREASE-PCT">
+      <value value="0.1"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="debugging-agentset-nb">
+      <value value="1"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="HFC-TICKER-MAX">
+      <value value="10"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="nb-villagers">
+      <value value="250"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="show-link?">
+      <value value="true"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="LINK-TRANSMISSION-DISTANCE">
+      <value value="1"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="PRL-TICKER-MAX">
+      <value value="10"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="network-type">
+      <value value="&quot;preferential-attachment&quot;"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="PRL-TICKER-STOP">
+      <value value="0.7"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="HFC-TICKER-START">
+      <value value="0.5"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="MIN-RSC-SAVING-PCT">
+      <value value="3"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="FACTOR-DIV">
+      <value value="4"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="TURTLE-PROC-CHOOSER">
+      <value value="&quot;REPORTER&quot;"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="wiring-probability">
+      <value value="0.16599"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="PRL-TICKER-START">
+      <value value="0.5"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="PERCENT-BEST-LAND">
+      <value value="0.06"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="Turtles-die?">
+      <value value="false"/>
     </enumeratedValueSet>
     <enumeratedValueSet variable="regrowth-chooser">
       <value value="&quot;always-regrow&quot;"/>
