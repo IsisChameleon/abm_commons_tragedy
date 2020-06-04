@@ -118,6 +118,7 @@ turtles-own
   ;; MESSAGING & CONNECTIVITY
   ;;=========================
   turtle-test-hub                 ; count of how many messages that turtle has received when testing for hubs
+  community                       ; turtle louvain community as detected by nw:louvain-community
 
   ;; MOVE
   ;;=====
@@ -426,6 +427,9 @@ to set-turtle-color
     set-turtle-color-by-hub  _min _max
     set-turtle-size-connectivity
   ]
+  if color-chooser = "louvain-community" [
+     ;; set-turtle-louvain-community   DOESN'T WORK YET
+  ]
   if color-chooser = "turtle-resource-ticker" [
     if prl-ticker = 0 [
       set color brown
@@ -626,6 +630,19 @@ to set-turtle-test-hub
   ]
 end
 
+to set-turtle-louvain-community
+  ;; doesn't work with dead turtles
+  let _communities nw:louvain-communities
+  ;;let _colors sublist  0 (length _communities)  ###
+  let _colors palette:scheme-colors "Divergent" "Spectral" length _communities
+  ( foreach _communities _colors [ [comm col ] ->
+    ask comm [
+      set community comm
+      set color col
+    ]
+  ] )
+end
+
 ;;to reset-hub
 ;;  ask turtles [
 ;;   set-turtle-color
@@ -645,6 +662,12 @@ to save-setup
 end
 
 to save-network
+  let _r random 100000000
+  let _filename_1 (word "./networks/network-gml-" _r ".txt" )
+  ;; https://networkx.github.io/documentation/networkx-1.9.1/reference/readwrite.gml.html
+  nw:save-gml _filename_1
+  let _filename_2 (word "./networks/network-graphml-" _r ".txt" )
+  nw:save-graphml _filename_2
 end
 
 to save-patches
@@ -1020,19 +1043,28 @@ end
 
 to-report will-turtle-do-it [ bond-strength percentage ]  ;; called by a turtle
   let _actual-percentage 0
+  let _prob-do-it 0
 
-  let _prob-do-it ( bond-strength / MAX-LINK-STRENGTH )
+  ifelse link-strength-impact-obey? [
+    ;; do what you're told more likely when the link is strong
+    set _prob-do-it ( bond-strength / MAX-LINK-STRENGTH )
+  ][
+    set _prob-do-it 1
+    ;; always do what you're told
+  ]
+
   let _do? random-float 1
   let p 0
   ifelse _do? <= _prob-do-it
   [
-     let _mean 0
-     let _standard-deviation (  ( 1 / 3 ) * ( MAX-LINK-STRENGTH / ( 2 * bond-strength ) )  )
-     set p random-normal _mean _standard-deviation
-     show p
-     if p > 1 [ set p 1 ]
-     if p < -1 [ set p -1 ]
-     set _actual-percentage ( percentage + ( p * percentage ) )
+    let _mean 0
+    let _bond-strength bond-strength
+    if _bond-strength = 0 [ set _bond-strength 0.1 ]
+    let _standard-deviation (  ( 1 / 3 ) * ( MAX-LINK-STRENGTH / ( 2 * _bond-strength ) )  )
+    set p random-normal _mean _standard-deviation
+    if p > 1 [ set p 1 ]
+    if p < -1 [ set p -1 ]
+    set _actual-percentage ( percentage + ( p * percentage ) )
   ][
     debugging "message" (list "WILL-TURTLE-DO-IT: Nah I won't do it , strength:" bond-strength "-actual-percentage: (should be 0)" _actual-percentage )
   ]
@@ -1231,7 +1263,9 @@ to memorize-patches-resource-of-my-friends
   ifelse prl-result-ticker > 0 [
     ;; if turtle has recently sent an alert and should watch what's going on
     ifelse prl-result-ticker = PRL-RESULT-TICKER-MAX [ ;;  if it's time to check the situation
+      debugging "message" (list "PRL-CHECKS: time to check the situation again")
       ifelse _current-prl <= prl-result-current-situation [   ;; if there's no improvement
+        debugging "message" (list "PRL-CHECKS: damn no better current-prl: " current-prl "-prl-result-current-situation:" prl-result-current-situation )
         harvest-a-bit  "less" turtle-group-and-me DECREASE-PCT                ;; Turtle is asking again to harvest less
         set prl-result-ticker 1 ;; turtle will see if situation improves
       ][
@@ -1244,13 +1278,13 @@ to memorize-patches-resource-of-my-friends
   [
   ;; if turtle doesn't worry yet, should it?
     ifelse prl-ticker = 0 [
-      debugging "adaptive" (list "MEMORIZE-PATCHES-RESOURCE-OF-MY-FRIENDS: ticker null current prl " _current-prl "-start level:" (PRL-TICKER-START * max-prl))
+      ;; debugging "message" (list "MEMORIZE-PATCHES-RESOURCE-OF-MY-FRIENDS: ticker null current prl " _current-prl "-start level:" (PRL-TICKER-START * max-prl))
       if _current-prl <= ( PRL-TICKER-START * max-prl) [
         set prl-ticker prl-ticker + 1
       ]
     ][
       ;; if the turtle is worrying should it stop?
-      debugging "adaptive" (list "MEMORIZE-PATCHES-RESOURCE-OF-MY-FRIENDS: ticker NOT null current prl " _current-prl "-stop level:" (PRL-TICKER-STOP * max-prl))
+      ;; debugging "adaptive" (list "MEMORIZE-PATCHES-RESOURCE-OF-MY-FRIENDS: ticker NOT null current prl " _current-prl "-stop level:" (PRL-TICKER-STOP * max-prl))
       ifelse _current-prl > (PRL-TICKER-STOP * max-prl) [
         set prl-ticker 0
       ][
@@ -1259,8 +1293,8 @@ to memorize-patches-resource-of-my-friends
     ]
     ;; if the turtle has been worrying for too long it raises alert
     if prl-ticker = PRL-TICKER-MAX [
-      debugging "adaptive" (list "ALERT:")
-      debugging "adaptive" (list "MEMORIZE-PATCHES-RESOURCE-OF-MY-FRIENDS: requesting " count turtle-group-and-me " of my friends to harvest a bit LESS " )
+      debugging "message" (list "ALERT:")
+      debugging "message" (list "MEMORIZE-PATCHES-RESOURCE-OF-MY-FRIENDS: requesting " count turtle-group-and-me " of my friends to harvest a bit LESS " )
       harvest-a-bit  "less" turtle-group-and-me DECREASE-PCT                ;; Turtle is asking her turtle group to harvest less
       set prl-result-ticker 1 ;; turtle will see if situation improves
       set prl-result-current-situation _current-prl
@@ -1271,19 +1305,19 @@ end
 
 to memorize-hungry-friends-count
   ifelse hfc-ticker = 0 [
-    if hungry-friends-count > ( HFC-TICKER-START * count turtle-group )[
+    if hungry-friends-count > ( HFC-TICKER-START * ( count turtle-group-and-me ) )[
       set hfc-ticker hfc-ticker + 1
     ]
   ][
-    ifelse hungry-friends-count <= ( HFC-TICKER-STOP * count turtle-group ) [
+    ifelse hungry-friends-count <= ( HFC-TICKER-STOP * ( count turtle-group-and-me ) ) [
       set hfc-ticker 0
     ][
       set hfc-ticker hfc-ticker + 1
     ]
   ]
   if hfc-ticker = HFC-TICKER-MAX [
-    debugging "adaptive" (list "ALERT:")
-    debugging "adaptive" (list "MEMORIZE-HUNGRY-FRIENDS-COUNT: requesting " count turtle-group-and-me " of my friends to harvest a bit more " )
+    debugging "message" (list "ALERT:")
+    debugging "message" (list "MEMORIZE-HUNGRY-FRIENDS-COUNT: requesting " count turtle-group-and-me " of my friends to harvest a bit more " )
     harvest-a-bit  "more" turtle-group-and-me INCREASE-PCT                ;; Turtle is asking her turtle group to harvest more but also herself.
   ]
   ;; the reset of hfc-ticker is done at the end of the to go procedure
@@ -1771,10 +1805,10 @@ ticks
 30.0
 
 BUTTON
-107
-22
-170
-55
+97
+11
+160
+44
 NIL
 Go
 T
@@ -1794,9 +1828,9 @@ SLIDER
 150
 nb-villagers
 nb-villagers
-140
+3
 500
-250.0
+3.0
 1
 1
 NIL
@@ -1847,7 +1881,7 @@ SWITCH
 84
 DEBUG
 DEBUG
-0
+1
 1
 -1000
 
@@ -1867,25 +1901,25 @@ NIL
 HORIZONTAL
 
 SLIDER
-9
-629
-192
-662
+14
+684
+197
+717
 wiring-probability
 wiring-probability
 0
 0.2
-0.16599
+0.01667
 0.00001
 1
 NIL
 HORIZONTAL
 
 MONITOR
-7
-555
-65
-600
+12
+610
+70
+655
 max-deg
 max [count link-neighbors] of turtles
 1
@@ -1893,10 +1927,10 @@ max [count link-neighbors] of turtles
 11
 
 MONITOR
-67
-555
-124
-600
+72
+610
+129
+655
 min-deg
 min [count link-neighbors] of turtles
 1
@@ -1904,10 +1938,10 @@ min [count link-neighbors] of turtles
 11
 
 MONITOR
-128
-554
-185
-599
+133
+609
+190
+654
 nb links
 count links
 1
@@ -1915,20 +1949,20 @@ count links
 11
 
 CHOOSER
-7
-501
-188
-546
+12
+556
+193
+601
 network-type
 network-type
 "no-network" "random_prob" "one-community" "preferential-attachment"
 3
 
 SLIDER
-9
-681
-124
-714
+14
+736
+129
+769
 min-degree
 min-degree
 0
@@ -2014,10 +2048,10 @@ NIL
 HORIZONTAL
 
 BUTTON
-11
-463
-80
-496
+16
+518
+85
+551
 Hubs
 highlight-hubs turtles
 NIL
@@ -2042,10 +2076,10 @@ adaptive-harvest?
 -1000
 
 BUTTON
-111
-464
-185
-497
+116
+519
+190
+552
 1 Hub
 highlight-hubs turtle-set one-of turtles with [dead? = false ]
 NIL
@@ -2131,24 +2165,24 @@ CHOOSER
 740
 color-chooser
 color-chooser
-"turtle-backpack" "turtle-resource-ticker" "turtle-hunger-ticker" "turtle-connectivity"
+"turtle-backpack" "turtle-resource-ticker" "turtle-hunger-ticker" "turtle-connectivity" "louvain-community"
 0
 
 TEXTBOX
-11
-614
-161
-632
+16
+669
+166
+687
 For random network:
 12
 0.0
 1
 
 TEXTBOX
-10
-664
-186
-694
+15
+719
+191
+749
 For preferential network:
 12
 0.0
@@ -2163,7 +2197,7 @@ MIN-RSC-SAVING-PCT
 MIN-RSC-SAVING-PCT
 0
 3
-3.0
+0.0
 0.05
 1
 NIL
@@ -2245,10 +2279,10 @@ show-link?
 -1000
 
 BUTTON
-7
-57
-192
-90
+8
+46
+193
+79
 Reset - Keep Land and Network
 reset-simulation
 NIL
@@ -2262,10 +2296,10 @@ NIL
 1
 
 BUTTON
-20
-21
-93
-54
+9
+10
+82
+43
 NIL
 setup
 NIL
@@ -2305,7 +2339,7 @@ true
 false
 "" ""
 PENS
-"default" 1.0 0 -16777216 true "" "plot-group-turtle-resource"
+"default" 1.0 1 -16777216 true "" "plot-group-turtle-resource"
 
 PLOT
 1287
@@ -2341,7 +2375,7 @@ true
 false
 "" ""
 PENS
-"default" 1.0 0 -10263788 true "" "plot-group-turtle-wealth"
+"default" 1.0 1 -10263788 true "" "plot-group-turtle-wealth"
 
 CHOOSER
 1667
@@ -2417,7 +2451,7 @@ FACTOR-DIV
 FACTOR-DIV
 1
 8
-4.0
+2.0
 1
 1
 NIL
@@ -2517,7 +2551,7 @@ PRL-TICKER-MAX
 PRL-TICKER-MAX
 2
 30
-10.0
+7.0
 1
 1
 NIL
@@ -2557,7 +2591,7 @@ DECREASE-PCT
 DECREASE-PCT
 0
 1
-0.1
+1.0
 0.1
 1
 NIL
@@ -2584,10 +2618,10 @@ Patches\nparameters:
 1
 
 SWITCH
-667
-239
-807
-272
+1556
+242
+1679
+275
 Turtles-die?
 Turtles-die?
 1
@@ -2595,11 +2629,11 @@ Turtles-die?
 -1000
 
 PLOT
-1694
-296
-1894
-446
-Strength distribution of links
+1666
+303
+1891
+453
+Links strength distribution
 NIL
 NIL
 0.0
@@ -2611,6 +2645,52 @@ false
 "" ""
 PENS
 "default" 1.0 1 -14730904 true "" "histogram [ strength ] of links"
+
+SWITCH
+11
+451
+184
+484
+link-strength-impact-obey?
+link-strength-impact-obey?
+0
+1
+-1000
+
+PLOT
+1670
+460
+1892
+610
+Hubs distribution
+NIL
+NIL
+0.0
+10.0
+0.0
+50.0
+true
+false
+"" ""
+PENS
+"default" 1.0 1 -10022847 true "" "histogram [ count turtle-group ] of turtles"
+
+BUTTON
+9
+81
+72
+114
+nw:save
+save-network
+NIL
+1
+T
+OBSERVER
+NIL
+NIL
+NIL
+NIL
+1
 
 @#$#@#$#@
 ## WHAT IS IT?
