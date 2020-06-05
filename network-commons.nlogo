@@ -294,7 +294,8 @@ to setup2
 end
 
 to load-network
-  nw:load-gml nw-filename turtles links [ setup-each-turtle ]
+  let _nw-filename (word "./networks/" nw-filename-chooser)
+  nw:load-gml _nw-filename turtles links [ setup-each-turtle ]
 end
 
 to setup
@@ -321,6 +322,7 @@ to reset-simulation
    setup-each-turtle
    set-turtle-color
    set label who
+   set label-color black
   ]
   ask links [
     ifelse show-link?  [ show-link ] [ hide-link ]
@@ -1383,6 +1385,7 @@ to setup-links
     ifelse show-link?  [ show-link ] [ hide-link ]
     set _sum _sum + [ strength ] of self
   ]
+  let _id 0
   if _sum = 0 [
     ask links [
       ;; if links strength hasn't been setup
@@ -1404,6 +1407,8 @@ to setup-links
       if strength < 0 [ set strength 0 ]
       if strength > MAX-LINK-STRENGTH [ set strength MAX-LINK-STRENGTH ]
       set label-color white
+      set label _id
+      set _id _id + 1
     ]
   ]
 end
@@ -1452,6 +1457,20 @@ to-report total-patch-regrowth
   report sum [ patch-regrowth  ] of patches
 end
 
+;; Links reporters
+;;==================
+
+to-report link-strength-distribution
+  let _list []
+  ;;ask turtle-set sort-on [who] links [                                        ;; ask turtles always in the same order
+  foreach sort-on [ "label" ] links [ x ->
+    ask x [
+      set _list lput ( [ strength ] of self ) _list ;; lput add an item at the end of the list (last put)
+    ]
+  ]
+  report _list
+end
+
 ;; Turtles reporters
 ;;==================
 
@@ -1472,12 +1491,36 @@ to-report total-wealth
   report sum [ turtle-wealth ] of turtles
 end
 
+
+
+to-report turtle-hunger-distribution
+  let _list []
+  ;;ask turtle-set sort-on [who] turtles [                                        ;; ask turtles always in the same order
+  foreach sort-on [who] turtles [ x ->
+    ask x [
+      set _list lput ( [ turtle-hunger-level ] of self ) _list ;; lput add an item at the end of the list (last put)
+    ]
+  ]
+  report _list
+end
+
 to-report group-turtle-resource
   let _list []
   ;;ask turtle-set sort-on [who] turtles [                                        ;; ask turtles always in the same order
   foreach sort-on [who] turtles [ x ->
     ask x [
       set _list lput (sum [ turtle-resource ] of turtle-group-and-me ) _list ;; lput add an item at the end of the list (last put)
+    ]
+  ]
+  report _list
+end
+
+to-report group-turtle-hub
+  let _list []
+  ;;ask turtle-set sort-on [who] turtles [                                        ;; ask turtles always in the same order
+  foreach sort-on [who] turtles [ x ->
+    ask x [
+      set _list lput (count turtle-group ) _list ;; lput add an item at the end of the list (last put)
     ]
   ]
   report _list
@@ -2092,7 +2135,7 @@ LINK-TRANSMISSION-DISTANCE
 LINK-TRANSMISSION-DISTANCE
 0
 5
-3.0
+5.0
 1
 1
 NIL
@@ -2217,7 +2260,7 @@ CHOOSER
 color-chooser
 color-chooser
 "turtle-backpack" "turtle-resource-ticker" "turtle-hunger-ticker" "turtle-connectivity" "louvain-community"
-0
+1
 
 TEXTBOX
 16
@@ -2408,7 +2451,7 @@ true
 false
 "" ""
 PENS
-"default" 1.0 0 -2674135 true "" "plot-group-turtle-hfc"
+"default" 1.0 1 -2674135 true "" "plot-group-turtle-hfc"
 
 PLOT
 1290
@@ -2462,7 +2505,7 @@ MAX-TURTLE-VISION
 MAX-TURTLE-VISION
 2
 12
-9.0
+8.0
 1
 1
 NIL
@@ -2587,7 +2630,7 @@ PRL-TICKER-STOP
 PRL-TICKER-STOP
 0.1
 1
-0.8
+0.5
 0.1
 1
 NIL
@@ -2760,17 +2803,6 @@ NIL
 NIL
 1
 
-INPUTBOX
-656
-10
-886
-70
-nw-filename
-./networks/petersen.gml
-1
-0
-String
-
 CHOOSER
 655
 139
@@ -2805,6 +2837,16 @@ when all the same:
 10
 0.0
 1
+
+CHOOSER
+653
+10
+847
+55
+nw-filename-chooser
+nw-filename-chooser
+"caveman_25_16.gml" "caveman_25_15.gml"
+0
 
 @#$#@#$#@
 ## WHAT IS IT?
@@ -3940,6 +3982,10 @@ NetLogo 6.1.1
     <metric>group-turtle-wealth</metric>
     <metric>group-turtle-prl</metric>
     <metric>group-turtle-hfc</metric>
+    <metric>group-turtle-hub</metric>
+    <metric>link-strength-distribution</metric>
+    <metric>count turtles</metric>
+    <metric>count links</metric>
     <enumeratedValueSet variable="DECREASE-PCT">
       <value value="1"/>
     </enumeratedValueSet>
@@ -4034,6 +4080,126 @@ NetLogo 6.1.1
     </enumeratedValueSet>
     <enumeratedValueSet variable="color-chooser">
       <value value="&quot;turtle-backpack&quot;"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="HFC-TICKER-STOP">
+      <value value="0.3"/>
+    </enumeratedValueSet>
+  </experiment>
+  <experiment name="experiment" repetitions="1" runMetricsEveryStep="true">
+    <setup>setup</setup>
+    <go>go</go>
+    <exitCondition>total-resource-reporter = 0</exitCondition>
+    <metric>total-resource-reporter</metric>
+    <metric>total-patch-regrowth</metric>
+    <metric>total-turtle-resource-reporter</metric>
+    <metric>total-quantity-harvested</metric>
+    <metric>number-of-hungry-turtles</metric>
+    <metric>total-wealth</metric>
+    <metric>total-food-exchanged</metric>
+    <metric>group-turtle-resource</metric>
+    <metric>group-turtle-wealth</metric>
+    <metric>group-turtle-prl</metric>
+    <metric>group-turtle-hfc</metric>
+    <metric>group-turtle-hub</metric>
+    <metric>turtle-hunger-distribution</metric>
+    <metric>link-strength-distribution</metric>
+    <metric>count turtles</metric>
+    <metric>count links</metric>
+    <enumeratedValueSet variable="DECREASE-PCT">
+      <value value="0.1"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="min-degree">
+      <value value="2"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="link-strength">
+      <value value="2"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="adaptive-harvest?">
+      <value value="true"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="MAX-TURTLE-BACKPACK">
+      <value value="4"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="debugging-agentset?">
+      <value value="false"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="nw-filename">
+      <value value="&quot;./networks/caveman_25_16.gml&quot;"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="INIT-HARVEST-LEVEL">
+      <value value="1"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="DEBUG-RATE">
+      <value value="0.05"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="INCREASE-PCT">
+      <value value="0.1"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="debugging-agentset-nb">
+      <value value="1"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="HFC-TICKER-MAX">
+      <value value="10"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="show-link?">
+      <value value="false"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="nb-villagers">
+      <value value="79"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="LINK-TRANSMISSION-DISTANCE">
+      <value value="5"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="PRL-TICKER-MAX">
+      <value value="7"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="network-type">
+      <value value="&quot;preferential-attachment&quot;"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="PRL-TICKER-STOP">
+      <value value="0.5"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="Turtles-die?">
+      <value value="false"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="HFC-TICKER-START">
+      <value value="0.5"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="PERCENT-BEST-LAND">
+      <value value="0.06"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="MIN-RSC-SAVING-PCT">
+      <value value="0"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="wiring-probability">
+      <value value="0.01056"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="PRL-TICKER-START">
+      <value value="0.7"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="FACTOR-DIV">
+      <value value="2"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="TURTLE-PROC-CHOOSER">
+      <value value="&quot;message&quot;"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="strength-chooser">
+      <value value="&quot;normal-3&quot;"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="MAX-TURTLE-VISION">
+      <value value="8"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="regrowth-chooser">
+      <value value="&quot;always-regrow&quot;"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="link-strength-impact-obey?">
+      <value value="true"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="DEBUG">
+      <value value="false"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="color-chooser">
+      <value value="&quot;turtle-resource-ticker&quot;"/>
     </enumeratedValueSet>
     <enumeratedValueSet variable="HFC-TICKER-STOP">
       <value value="0.3"/>
