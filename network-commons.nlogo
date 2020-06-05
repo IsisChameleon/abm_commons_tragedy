@@ -279,6 +279,24 @@ to initialize-debugging
   ]
 end
 
+to setup2
+  clear-all
+  initialize-globals
+  setup-patches
+  set-default-shape turtles "person"
+  load-network             ;; load gml file
+  setup-links              ;; setup the link strength if there's non
+  setup-turtles
+  set-turtle-test-hub      ;; needs to happen after setup-turtles
+  initialize-debugging
+  save-setup
+  reset-ticks
+end
+
+to load-network
+  nw:load-gml nw-filename turtles links [ setup-each-turtle ]
+end
+
 to setup
   clear-all
   initialize-globals
@@ -302,7 +320,7 @@ to reset-simulation
   ask turtles [
    setup-each-turtle
    set-turtle-color
-   set label ""
+   set label who
   ]
   ask links [
     ifelse show-link?  [ show-link ] [ hide-link ]
@@ -342,6 +360,7 @@ to setup-each-turtle
   set has-moved? false
   set hidden? false
   set-turtle-memory
+  set label who
 end
 
 to die-if-too-hungry   ;; turtle proc
@@ -434,7 +453,7 @@ to set-turtle-color
     if prl-ticker = 0 [
       set color brown
       set size 1
-      set label ""
+      set label who
     ]
     if prl-ticker > 0 and prl-ticker < PRL-TICKER-MAX [
       ;; BROWN TO bright orange
@@ -453,7 +472,7 @@ to set-turtle-color
     if hfc-ticker = 0 [
       set color 102   ;;dark blue
       set size 1
-      set label ""
+      set label who
     ]
     if hfc-ticker > 0 and hfc-ticker < HFC-TICKER-MAX [
       ;; dark blue TO bright pink
@@ -687,7 +706,7 @@ to go
   ]
 
   ask turtles-alive [
-    set label ""
+    set label who
     observe-world    ;; set a few variables like best-visible-turtle, best-visible-patch
     move
     observe-world
@@ -1349,11 +1368,43 @@ to setup-network
   if network-type = "random_prob" [random_wire4] ;; requires to set prob > 0 to work
   if network-type = "one-community" [one-community]
   if network-type = "preferential-attachment" [preferential-attachment]
+  ;;ask links [
+  ;; ifelse show-link?  [ show-link ] [ hide-link ]
+  ;;  set strength (1 + random-normal (MAX-LINK-STRENGTH / 2) 1)
+  ;;  ;; set label strength ;; if you don't want to see the strength value on every link please comment this line
+  ;;  set label-color white
+  ;;]
+  setup-links
+end
+
+to setup-links
+  let _sum 0
   ask links [
     ifelse show-link?  [ show-link ] [ hide-link ]
-    set strength (1 + random-normal (MAX-LINK-STRENGTH / 2) 1)
-    ;; set label strength ;; if you don't want to see the strength value on every link please comment this line
-    set label-color white
+    set _sum _sum + [ strength ] of self
+  ]
+  if _sum = 0 [
+    ask links [
+      ;; if links strength hasn't been setup
+      if strength-chooser = "random" [
+        set strength random MAX-LINK-STRENGTH + 1
+      ]
+      if strength-chooser = "normal" [
+        set strength (1 + random-normal (MAX-LINK-STRENGTH / 2) 1)
+      ]
+      if strength-chooser = "normal-3" [
+        set strength (1 + random-normal (MAX-LINK-STRENGTH / 2) 3)
+      ]
+      if strength-chooser = "all-the-same" [
+        set strength link-strength
+      ]
+      if strength-chooser = "exponential" [
+        set strength random-exponential (MAX-LINK-STRENGTH / 2)
+      ]
+      if strength < 0 [ set strength 0 ]
+      if strength > MAX-LINK-STRENGTH [ set strength MAX-LINK-STRENGTH ]
+      set label-color white
+    ]
   ]
 end
 
@@ -1830,7 +1881,7 @@ nb-villagers
 nb-villagers
 3
 500
-3.0
+79.0
 1
 1
 NIL
@@ -1850,7 +1901,7 @@ total-resource
 PLOT
 207
 605
-697
+646
 778
 Total resources
 Time
@@ -1868,9 +1919,9 @@ PENS
 "Harvested Rsc" 1.0 0 -14454117 true "" "plot total-quantity-harvested"
 
 OUTPUT
-648
+903
 10
-1658
+1660
 238
 12
 
@@ -1909,7 +1960,7 @@ wiring-probability
 wiring-probability
 0
 0.2
-0.01667
+0.01056
 0.00001
 1
 NIL
@@ -1967,7 +2018,7 @@ min-degree
 min-degree
 0
 10
-1.0
+2.0
 1
 1
 NIL
@@ -1976,7 +2027,7 @@ HORIZONTAL
 PLOT
 206
 451
-697
+644
 601
 Hungry turtles
 #HungryTurtles
@@ -2041,7 +2092,7 @@ LINK-TRANSMISSION-DISTANCE
 LINK-TRANSMISSION-DISTANCE
 0
 5
-1.0
+3.0
 1
 1
 NIL
@@ -2274,7 +2325,7 @@ SWITCH
 693
 show-link?
 show-link?
-0
+1
 1
 -1000
 
@@ -2403,25 +2454,25 @@ NIL
 HORIZONTAL
 
 SLIDER
-663
-278
-856
-311
+657
+240
+875
+273
 MAX-TURTLE-VISION
 MAX-TURTLE-VISION
 2
 12
-8.0
+9.0
 1
 1
 NIL
 HORIZONTAL
 
 SLIDER
-663
-313
-881
-346
+657
+275
+875
+308
 MAX-TURTLE-BACKPACK
 MAX-TURTLE-BACKPACK
 1
@@ -2443,9 +2494,9 @@ Harvest Level :
 1
 
 SLIDER
-666
+659
 367
-838
+887
 400
 FACTOR-DIV
 FACTOR-DIV
@@ -2458,7 +2509,7 @@ NIL
 HORIZONTAL
 
 SLIDER
-704
+659
 417
 889
 450
@@ -2473,9 +2524,9 @@ NIL
 HORIZONTAL
 
 SLIDER
-705
+658
 453
-883
+890
 486
 HFC-TICKER-STOP
 HFC-TICKER-STOP
@@ -2488,9 +2539,9 @@ NIL
 HORIZONTAL
 
 SLIDER
-705
+659
 485
-877
+889
 518
 HFC-TICKER-MAX
 HFC-TICKER-MAX
@@ -2521,7 +2572,7 @@ PRL-TICKER-START
 PRL-TICKER-START
 0
 0.9
-0.5
+0.7
 0.1
 1
 NIL
@@ -2536,7 +2587,7 @@ PRL-TICKER-STOP
 PRL-TICKER-STOP
 0.1
 1
-0.7
+0.8
 0.1
 1
 NIL
@@ -2558,7 +2609,7 @@ NIL
 HORIZONTAL
 
 TEXTBOX
-708
+662
 520
 901
 550
@@ -2591,7 +2642,7 @@ DECREASE-PCT
 DECREASE-PCT
 0
 1
-1.0
+0.1
 0.1
 1
 NIL
@@ -2618,10 +2669,10 @@ Patches\nparameters:
 1
 
 SWITCH
-1556
-242
-1679
-275
+658
+311
+781
+344
 Turtles-die?
 Turtles-die?
 1
@@ -2690,6 +2741,69 @@ NIL
 NIL
 NIL
 NIL
+1
+
+BUTTON
+656
+75
+886
+108
+Setup nw:load
+setup2
+NIL
+1
+T
+OBSERVER
+NIL
+NIL
+NIL
+NIL
+1
+
+INPUTBOX
+656
+10
+886
+70
+nw-filename
+./networks/petersen.gml
+1
+0
+String
+
+CHOOSER
+655
+139
+773
+184
+strength-chooser
+strength-chooser
+"normal" "normal-3" "all-the-same" "exponential" "random"
+1
+
+SLIDER
+777
+152
+893
+185
+link-strength
+link-strength
+0
+10
+2.0
+1
+1
+NIL
+HORIZONTAL
+
+TEXTBOX
+785
+136
+935
+154
+when all the same:
+10
+0.0
 1
 
 @#$#@#$#@
@@ -3805,6 +3919,121 @@ NetLogo 6.1.1
     </enumeratedValueSet>
     <enumeratedValueSet variable="color-chooser">
       <value value="&quot;turtle-hunger-ticker&quot;"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="HFC-TICKER-STOP">
+      <value value="0.3"/>
+    </enumeratedValueSet>
+  </experiment>
+  <experiment name="experiment #3 nb-villagers link-transmission network-type" repetitions="5" runMetricsEveryStep="true">
+    <setup>setup</setup>
+    <go>go</go>
+    <timeLimit steps="10000"/>
+    <exitCondition>total-resource-reporter = 0</exitCondition>
+    <metric>total-resource-reporter</metric>
+    <metric>total-patch-regrowth</metric>
+    <metric>total-turtle-resource-reporter</metric>
+    <metric>total-quantity-harvested</metric>
+    <metric>number-of-hungry-turtles</metric>
+    <metric>total-wealth</metric>
+    <metric>total-food-exchanged</metric>
+    <metric>group-turtle-resource</metric>
+    <metric>group-turtle-wealth</metric>
+    <metric>group-turtle-prl</metric>
+    <metric>group-turtle-hfc</metric>
+    <enumeratedValueSet variable="DECREASE-PCT">
+      <value value="1"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="min-degree">
+      <value value="2"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="adaptive-harvest?">
+      <value value="true"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="MAX-TURTLE-BACKPACK">
+      <value value="4"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="debugging-agentset?">
+      <value value="false"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="INIT-HARVEST-LEVEL">
+      <value value="1"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="DEBUG-RATE">
+      <value value="0.05"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="INCREASE-PCT">
+      <value value="0.1"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="debugging-agentset-nb">
+      <value value="1"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="HFC-TICKER-MAX">
+      <value value="10"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="show-link?">
+      <value value="true"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="nb-villagers">
+      <value value="300"/>
+      <value value="350"/>
+      <value value="400"/>
+      <value value="450"/>
+      <value value="500"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="LINK-TRANSMISSION-DISTANCE">
+      <value value="1"/>
+      <value value="2"/>
+      <value value="3"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="PRL-TICKER-MAX">
+      <value value="7"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="network-type">
+      <value value="&quot;preferential-attachment&quot;"/>
+      <value value="&quot;no-network&quot;"/>
+      <value value="&quot;random_prob&quot;"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="PRL-TICKER-STOP">
+      <value value="0.8"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="Turtles-die?">
+      <value value="false"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="HFC-TICKER-START">
+      <value value="0.5"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="PERCENT-BEST-LAND">
+      <value value="0.06"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="MIN-RSC-SAVING-PCT">
+      <value value="0"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="wiring-probability">
+      <value value="0.01071"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="PRL-TICKER-START">
+      <value value="0.7"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="FACTOR-DIV">
+      <value value="2"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="TURTLE-PROC-CHOOSER">
+      <value value="&quot;message&quot;"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="MAX-TURTLE-VISION">
+      <value value="8"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="regrowth-chooser">
+      <value value="&quot;always-regrow&quot;"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="link-strength-impact-obey?">
+      <value value="true"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="DEBUG">
+      <value value="false"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="color-chooser">
+      <value value="&quot;turtle-backpack&quot;"/>
     </enumeratedValueSet>
     <enumeratedValueSet variable="HFC-TICKER-STOP">
       <value value="0.3"/>
