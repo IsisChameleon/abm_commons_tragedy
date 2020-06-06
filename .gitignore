@@ -1,2 +1,10 @@
 network-commons output.txt
-./data/*
+*-graphml*
+*-gml*
+data/*
+.ipynb_checkpoints/
+.network-commons.tmp.nlogo
+.text.txt.swp
+headless
+temp.txt
+

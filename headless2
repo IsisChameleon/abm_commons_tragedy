@@ -1,0 +1,7 @@
+. ./netlogo-headless.sh --model ~/Dropbox/Coding/gitrepos/abm_commons_tragedy/network-commons.nlogo --experiment 'CAV51' --table 'CAV51.csv'
+. ./netlogo-headless.sh --model ~/Dropbox/Coding/gitrepos/abm_commons_tragedy/network-commons.nlogo --experiment 'CAV41' --table 'CAV41.csv'
+. ./netlogo-headless.sh --model ~/Dropbox/Coding/gitrepos/abm_commons_tragedy/network-commons.nlogo --experiment 'CAV42' --table 'CAV42.csv'
+. ./netlogo-headless.sh --model ~/Dropbox/Coding/gitrepos/abm_commons_tragedy/network-commons.nlogo --experiment 'CAV43' --table 'CAV43.csv'
+. ./netlogo-headless.sh --model ~/Dropbox/Coding/gitrepos/abm_commons_tragedy/network-commons.nlogo --experiment 'CAV52' --table 'CAV52.csv'
+. ./netlogo-headless.sh --model ~/Dropbox/Coding/gitrepos/abm_commons_tragedy/network-commons.nlogo --experiment 'CAV53' --table 'CAV53.csv'
+. ./netlogo-headless.sh --model ~/Dropbox/Coding/gitrepos/abm_commons_tragedy/network-commons.nlogo --experiment 'CAV3' --table 'CAV3.csv'
