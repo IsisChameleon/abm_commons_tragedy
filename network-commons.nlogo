@@ -692,10 +692,10 @@ to save-network
   let _filename_2 ""
   ifelse experiment-name-chooser = "" [
     set _filename_1 (word "./networks/network-gml-" random-run-number ".txt" )
-    ;; set _filename_2 (word "./networks/network-graphml-" random-run-number ".txt" )
+    set _filename_2 (word "./networks/network-graphml-" random-run-number ".txt" )
   ][
-    set _filename_1 (word "./networks/network-gml-" experiment-name-chooser "-" random-run-number ".txt" )
-    set _filename_2 (word "./networks/network-graphml-" experiment-name-chooser "-" random-run-number ".txt" )
+    set _filename_1 (word "./networks/" experiment-name-chooser "-" behaviorspace-run-number "-network-gml-" random-run-number ".txt" )
+    set _filename_2 (word "./networks/" experiment-name-chooser "-" behaviorspace-run-number "-network-graphml-"  random-run-number ".txt" )
   ]
   ;; https://networkx.github.io/documentation/networkx-1.9.1/reference/readwrite.gml.html
   nw:save-gml _filename_1
@@ -1469,16 +1469,19 @@ end
 to final-command
 
   let _filename_1 ""
+  let _filename_2 ""
   let _filename_view ""
   let _filename_plots ""
   ifelse experiment-name-chooser = "" [
-    set _filename_1 (word "./data/turtles-data-final-command-" random-run-number ".csv" )
-    set _filename_view (word "./data/view-final-command-" random-run-number ".png" )
-    set _filename_plots (word "./data/plots-final-command-" random-run-number ".csv" )
+    set _filename_1 (word "./data/" behaviorspace-run-number "-turtles-group-data-final-command-" random-run-number ".csv" )
+    set _filename_2 (word "./data/" behaviorspace-run-number "-turtles-data-final-command-" random-run-number ".csv" )
+    set _filename_view (word "./data/" behaviorspace-run-number "-view-final-command-" random-run-number ".png" )
+    set _filename_plots (word "./data/" behaviorspace-run-number "-plots-final-command-" random-run-number ".csv" )
   ][
-    set _filename_1 (word "./data/turtles-data-final-command-" experiment-name-chooser "-" random-run-number ".csv" )
-    set _filename_view (word "./data/view-final-command-" experiment-name-chooser "-" random-run-number ".png" )
-    set _filename_plots (word "./data/plots-final-command-" experiment-name-chooser "-" random-run-number ".csv" )
+    set _filename_1 (word "./data/" experiment-name-chooser "-" behaviorspace-run-number "-turtles-group-data-final-command-"   random-run-number ".csv" )
+    set _filename_2 (word "./data/" experiment-name-chooser "-" behaviorspace-run-number "-turtles-data-final-command-"   random-run-number ".csv" )
+    set _filename_view (word "./data/" experiment-name-chooser "-" behaviorspace-run-number "-view-final-command-"  random-run-number ".png" )
+    set _filename_plots (word "./data/" experiment-name-chooser "-" behaviorspace-run-number "-plots-final-command-"  random-run-number ".csv" )
   ]
   file-open _filename_1
   file-type (word "link-strength-distribution," link-strength-distribution "\n")
@@ -1489,12 +1492,13 @@ to final-command
   file-type (word "group-turtle-wealth," group-turtle-wealth "\n")
   file-type (word "group-turtle-prl," group-turtle-prl "\n")
   file-type (word "group-turtle-hfc," group-turtle-hfc "\n")
-  file-type (word "total-wealth," total-wealth "\n")
-  file-type (word "total-turtle-resource-reporter," total-turtle-resource-reporter "\n")
-  file-type (word "total-resource-reporter," total-resource-reporter "\n")
-  file-type (word "number-of-hungry-turtles," number-of-hungry-turtles "\n")
-  file-type (word "count turtles," count turtles "\n")
-  file-type (word "count links," count links "\n")
+  file-close
+
+  file-open _filename_2
+  file-type (word "total-resource-reporter," "total-patch-regrowth," "total-turtle-resource-reporter," "total-turtle-resource-reporter," "total-quantity-harvested," )
+  file-type (word "number-of-hungry-turtles," "total-wealth," "total-food-exchanged," "count turtles," "count links\n")
+  file-type (word total-resource-reporter "," total-patch-regrowth "," total-turtle-resource-reporter "," total-turtle-resource-reporter "," total-quantity-harvested ",")
+  file-type (word number-of-hungry-turtles "," total-wealth "," total-food-exchanged "," count turtles "," count links "\n")
   file-close
 
   export-view _filename_view
@@ -2955,7 +2959,7 @@ CHOOSER
 140
 experiment-name-chooser
 experiment-name-chooser
-"DEMO" "CAV3" "CAV41" "CAV42" "CAV43" "CAV51" "CAV52" "CAV53" ""
+"DEMO" "CAV3" "CAV41" "CAV42" "CAV43" "CAV51" "CAV52" "CAV53" "CAV61" "CAV62" ""
 0
 
 INPUTBOX
@@ -4343,10 +4347,10 @@ NetLogo 6.1.1
       <value value="0.3"/>
     </enumeratedValueSet>
   </experiment>
-  <experiment name="CAV1 caveman_25_15 link transmission 5 4 3" repetitions="5" runMetricsEveryStep="true">
+  <experiment name="CAV1 caveman_25_15 link transmission 5 4 3" repetitions="3" runMetricsEveryStep="true">
     <setup>setup2</setup>
     <go>go</go>
-    <timeLimit steps="10000"/>
+    <timeLimit steps="3000"/>
     <exitCondition>total-resource-reporter = 0</exitCondition>
     <metric>total-resource-reporter</metric>
     <metric>total-patch-regrowth</metric>
@@ -4364,6 +4368,15 @@ NetLogo 6.1.1
     <metric>link-strength-distribution</metric>
     <metric>count turtles</metric>
     <metric>count links</metric>
+    <enumeratedValueSet variable="experiment-name">
+      <value value="&quot;CAV1&quot;"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="experiment-name-chooser">
+      <value value="&quot;CAV1&quot;"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="PERCENT-BEST-LAND">
+      <value value="0.055"/>
+    </enumeratedValueSet>
     <enumeratedValueSet variable="DECREASE-PCT">
       <value value="0.1"/>
     </enumeratedValueSet>
@@ -4411,23 +4424,14 @@ NetLogo 6.1.1
       <value value="4"/>
       <value value="3"/>
     </enumeratedValueSet>
-    <enumeratedValueSet variable="PRL-TICKER-MAX">
-      <value value="7"/>
-    </enumeratedValueSet>
     <enumeratedValueSet variable="network-type">
       <value value="&quot;preferential-attachment&quot;"/>
-    </enumeratedValueSet>
-    <enumeratedValueSet variable="PRL-TICKER-STOP">
-      <value value="0.5"/>
     </enumeratedValueSet>
     <enumeratedValueSet variable="Turtles-die?">
       <value value="false"/>
     </enumeratedValueSet>
     <enumeratedValueSet variable="HFC-TICKER-START">
       <value value="0.5"/>
-    </enumeratedValueSet>
-    <enumeratedValueSet variable="PERCENT-BEST-LAND">
-      <value value="0.06"/>
     </enumeratedValueSet>
     <enumeratedValueSet variable="MIN-RSC-SAVING-PCT">
       <value value="0"/>
@@ -4436,10 +4440,16 @@ NetLogo 6.1.1
       <value value="0.01056"/>
     </enumeratedValueSet>
     <enumeratedValueSet variable="PRL-TICKER-START">
+      <value value="0.5"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="PRL-TICKER-STOP">
       <value value="0.7"/>
     </enumeratedValueSet>
+    <enumeratedValueSet variable="PRL-TICKER-MAX">
+      <value value="10"/>
+    </enumeratedValueSet>
     <enumeratedValueSet variable="FACTOR-DIV">
-      <value value="2"/>
+      <value value="4"/>
     </enumeratedValueSet>
     <enumeratedValueSet variable="TURTLE-PROC-CHOOSER">
       <value value="&quot;message&quot;"/>
@@ -4466,10 +4476,10 @@ NetLogo 6.1.1
       <value value="0.3"/>
     </enumeratedValueSet>
   </experiment>
-  <experiment name="CAV2 caveman_25_15 link transmission 2  1  0" repetitions="5" runMetricsEveryStep="true">
+  <experiment name="CAV2 caveman_25_15 link transmission 2  1  0" repetitions="3" runMetricsEveryStep="true">
     <setup>setup2</setup>
     <go>go</go>
-    <timeLimit steps="10000"/>
+    <timeLimit steps="3000"/>
     <exitCondition>total-resource-reporter = 0</exitCondition>
     <metric>total-resource-reporter</metric>
     <metric>total-patch-regrowth</metric>
@@ -4487,8 +4497,26 @@ NetLogo 6.1.1
     <metric>link-strength-distribution</metric>
     <metric>count turtles</metric>
     <metric>count links</metric>
+    <enumeratedValueSet variable="experiment-name">
+      <value value="&quot;CAV2&quot;"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="experiment-name-chooser">
+      <value value="&quot;CAV2&quot;"/>
+    </enumeratedValueSet>
     <enumeratedValueSet variable="DECREASE-PCT">
       <value value="0.1"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="PRL-TICKER-START">
+      <value value="0.5"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="PRL-TICKER-STOP">
+      <value value="0.7"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="PRL-TICKER-MAX">
+      <value value="10"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="FACTOR-DIV">
+      <value value="4"/>
     </enumeratedValueSet>
     <enumeratedValueSet variable="min-degree">
       <value value="2"/>
@@ -4534,14 +4562,8 @@ NetLogo 6.1.1
       <value value="1"/>
       <value value="0"/>
     </enumeratedValueSet>
-    <enumeratedValueSet variable="PRL-TICKER-MAX">
-      <value value="7"/>
-    </enumeratedValueSet>
     <enumeratedValueSet variable="network-type">
       <value value="&quot;preferential-attachment&quot;"/>
-    </enumeratedValueSet>
-    <enumeratedValueSet variable="PRL-TICKER-STOP">
-      <value value="0.5"/>
     </enumeratedValueSet>
     <enumeratedValueSet variable="Turtles-die?">
       <value value="false"/>
@@ -4550,19 +4572,13 @@ NetLogo 6.1.1
       <value value="0.5"/>
     </enumeratedValueSet>
     <enumeratedValueSet variable="PERCENT-BEST-LAND">
-      <value value="0.06"/>
+      <value value="0.055"/>
     </enumeratedValueSet>
     <enumeratedValueSet variable="MIN-RSC-SAVING-PCT">
       <value value="0"/>
     </enumeratedValueSet>
     <enumeratedValueSet variable="wiring-probability">
       <value value="0.01056"/>
-    </enumeratedValueSet>
-    <enumeratedValueSet variable="PRL-TICKER-START">
-      <value value="0.7"/>
-    </enumeratedValueSet>
-    <enumeratedValueSet variable="FACTOR-DIV">
-      <value value="2"/>
     </enumeratedValueSet>
     <enumeratedValueSet variable="TURTLE-PROC-CHOOSER">
       <value value="&quot;message&quot;"/>
@@ -4589,11 +4605,11 @@ NetLogo 6.1.1
       <value value="0.3"/>
     </enumeratedValueSet>
   </experiment>
-  <experiment name="CAV3" repetitions="5" runMetricsEveryStep="true">
+  <experiment name="CAV3" repetitions="3" runMetricsEveryStep="true">
     <setup>setup2</setup>
     <go>go</go>
     <final>final-command</final>
-    <timeLimit steps="10000"/>
+    <timeLimit steps="3000"/>
     <exitCondition>total-resource-reporter = 0</exitCondition>
     <metric>total-resource-reporter</metric>
     <metric>total-patch-regrowth</metric>
@@ -4607,6 +4623,18 @@ NetLogo 6.1.1
     </enumeratedValueSet>
     <enumeratedValueSet variable="experiment-name-chooser">
       <value value="&quot;CAV3&quot;"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="PRL-TICKER-START">
+      <value value="0.5"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="PRL-TICKER-STOP">
+      <value value="0.7"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="PRL-TICKER-MAX">
+      <value value="10"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="FACTOR-DIV">
+      <value value="4"/>
     </enumeratedValueSet>
     <enumeratedValueSet variable="DECREASE-PCT">
       <value value="0.1"/>
@@ -4653,14 +4681,8 @@ NetLogo 6.1.1
     <enumeratedValueSet variable="LINK-TRANSMISSION-DISTANCE">
       <value value="2"/>
     </enumeratedValueSet>
-    <enumeratedValueSet variable="PRL-TICKER-MAX">
-      <value value="7"/>
-    </enumeratedValueSet>
     <enumeratedValueSet variable="network-type">
       <value value="&quot;preferential-attachment&quot;"/>
-    </enumeratedValueSet>
-    <enumeratedValueSet variable="PRL-TICKER-STOP">
-      <value value="0.5"/>
     </enumeratedValueSet>
     <enumeratedValueSet variable="Turtles-die?">
       <value value="false"/>
@@ -4669,19 +4691,13 @@ NetLogo 6.1.1
       <value value="0.5"/>
     </enumeratedValueSet>
     <enumeratedValueSet variable="PERCENT-BEST-LAND">
-      <value value="0.06"/>
+      <value value="0.055"/>
     </enumeratedValueSet>
     <enumeratedValueSet variable="MIN-RSC-SAVING-PCT">
       <value value="0"/>
     </enumeratedValueSet>
     <enumeratedValueSet variable="wiring-probability">
       <value value="0.01056"/>
-    </enumeratedValueSet>
-    <enumeratedValueSet variable="PRL-TICKER-START">
-      <value value="0.7"/>
-    </enumeratedValueSet>
-    <enumeratedValueSet variable="FACTOR-DIV">
-      <value value="2"/>
     </enumeratedValueSet>
     <enumeratedValueSet variable="TURTLE-PROC-CHOOSER">
       <value value="&quot;message&quot;"/>
@@ -4710,11 +4726,11 @@ NetLogo 6.1.1
       <value value="0.3"/>
     </enumeratedValueSet>
   </experiment>
-  <experiment name="CAV51" repetitions="5" runMetricsEveryStep="true">
+  <experiment name="CAV51" repetitions="3" runMetricsEveryStep="true">
     <setup>setup2</setup>
     <go>go</go>
     <final>final-command</final>
-    <timeLimit steps="10000"/>
+    <timeLimit steps="3000"/>
     <exitCondition>total-resource-reporter = 0</exitCondition>
     <metric>total-resource-reporter</metric>
     <metric>total-patch-regrowth</metric>
@@ -4729,8 +4745,16 @@ NetLogo 6.1.1
     <enumeratedValueSet variable="experiment-name-chooser">
       <value value="&quot;CAV51&quot;"/>
     </enumeratedValueSet>
-    <enumeratedValueSet variable="DECREASE-PCT">
-      <value value="0.1"/>
+    <enumeratedValueSet variable="nw-filename-chooser">
+      <value value="&quot;caveman_25_16.gml&quot;"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="PERCENT-BEST-LAND">
+      <value value="0.05"/>
+      <value value="0.055"/>
+      <value value="0.06"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="nb-villagers">
+      <value value="79"/>
     </enumeratedValueSet>
     <enumeratedValueSet variable="min-degree">
       <value value="2"/>
@@ -4738,50 +4762,53 @@ NetLogo 6.1.1
     <enumeratedValueSet variable="link-strength">
       <value value="2"/>
     </enumeratedValueSet>
-    <enumeratedValueSet variable="adaptive-harvest?">
-      <value value="true"/>
+    <enumeratedValueSet variable="PRL-TICKER-START">
+      <value value="0.5"/>
     </enumeratedValueSet>
-    <enumeratedValueSet variable="MAX-TURTLE-BACKPACK">
-      <value value="4"/>
+    <enumeratedValueSet variable="PRL-TICKER-STOP">
+      <value value="0.7"/>
     </enumeratedValueSet>
-    <enumeratedValueSet variable="debugging-agentset?">
-      <value value="false"/>
-    </enumeratedValueSet>
-    <enumeratedValueSet variable="nw-filename-chooser">
-      <value value="&quot;caveman_25_16.gml&quot;"/>
-    </enumeratedValueSet>
-    <enumeratedValueSet variable="INIT-HARVEST-LEVEL">
-      <value value="1"/>
-    </enumeratedValueSet>
-    <enumeratedValueSet variable="DEBUG-RATE">
-      <value value="0.05"/>
-    </enumeratedValueSet>
-    <enumeratedValueSet variable="INCREASE-PCT">
-      <value value="0.1"/>
-    </enumeratedValueSet>
-    <enumeratedValueSet variable="debugging-agentset-nb">
-      <value value="1"/>
-    </enumeratedValueSet>
-    <enumeratedValueSet variable="HFC-TICKER-MAX">
+    <enumeratedValueSet variable="PRL-TICKER-MAX">
       <value value="10"/>
     </enumeratedValueSet>
-    <enumeratedValueSet variable="show-link?">
-      <value value="false"/>
+    <enumeratedValueSet variable="FACTOR-DIV">
+      <value value="4"/>
     </enumeratedValueSet>
-    <enumeratedValueSet variable="nb-villagers">
-      <value value="79"/>
+    <enumeratedValueSet variable="DECREASE-PCT">
+      <value value="0.1"/>
     </enumeratedValueSet>
     <enumeratedValueSet variable="LINK-TRANSMISSION-DISTANCE">
       <value value="5"/>
     </enumeratedValueSet>
-    <enumeratedValueSet variable="PRL-TICKER-MAX">
-      <value value="7"/>
-    </enumeratedValueSet>
     <enumeratedValueSet variable="network-type">
       <value value="&quot;preferential-attachment&quot;"/>
     </enumeratedValueSet>
-    <enumeratedValueSet variable="PRL-TICKER-STOP">
-      <value value="0.5"/>
+    <enumeratedValueSet variable="adaptive-harvest?">
+      <value value="true"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="MAX-TURTLE-BACKPACK">
+      <value value="4"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="debugging-agentset?">
+      <value value="false"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="INIT-HARVEST-LEVEL">
+      <value value="1"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="DEBUG-RATE">
+      <value value="0.05"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="INCREASE-PCT">
+      <value value="0.1"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="debugging-agentset-nb">
+      <value value="1"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="HFC-TICKER-MAX">
+      <value value="10"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="show-link?">
+      <value value="false"/>
     </enumeratedValueSet>
     <enumeratedValueSet variable="Turtles-die?">
       <value value="false"/>
@@ -4789,23 +4816,11 @@ NetLogo 6.1.1
     <enumeratedValueSet variable="HFC-TICKER-START">
       <value value="0.5"/>
     </enumeratedValueSet>
-    <enumeratedValueSet variable="PERCENT-BEST-LAND">
-      <value value="0.08"/>
-      <value value="0.1"/>
-      <value value="0.12"/>
-      <value value="0.16"/>
-    </enumeratedValueSet>
     <enumeratedValueSet variable="MIN-RSC-SAVING-PCT">
       <value value="0"/>
     </enumeratedValueSet>
     <enumeratedValueSet variable="wiring-probability">
       <value value="0.01056"/>
-    </enumeratedValueSet>
-    <enumeratedValueSet variable="PRL-TICKER-START">
-      <value value="0.7"/>
-    </enumeratedValueSet>
-    <enumeratedValueSet variable="FACTOR-DIV">
-      <value value="2"/>
     </enumeratedValueSet>
     <enumeratedValueSet variable="TURTLE-PROC-CHOOSER">
       <value value="&quot;message&quot;"/>
@@ -4832,11 +4847,11 @@ NetLogo 6.1.1
       <value value="0.3"/>
     </enumeratedValueSet>
   </experiment>
-  <experiment name="CAV41" repetitions="5" runMetricsEveryStep="true">
+  <experiment name="CAV41" repetitions="3" runMetricsEveryStep="true">
     <setup>setup2</setup>
     <go>go</go>
     <final>final-command</final>
-    <timeLimit steps="10000"/>
+    <timeLimit steps="3000"/>
     <exitCondition>total-resource-reporter = 0</exitCondition>
     <metric>total-resource-reporter</metric>
     <metric>total-patch-regrowth</metric>
@@ -4851,14 +4866,43 @@ NetLogo 6.1.1
     <enumeratedValueSet variable="experiment-name-chooser">
       <value value="&quot;CAV41&quot;"/>
     </enumeratedValueSet>
-    <enumeratedValueSet variable="DECREASE-PCT">
-      <value value="0.1"/>
+    <enumeratedValueSet variable="nw-filename-chooser">
+      <value value="&quot;caveman_25_16.gml&quot;"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="PERCENT-BEST-LAND">
+      <value value="0.05"/>
+      <value value="0.055"/>
+      <value value="0.06"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="nb-villagers">
+      <value value="79"/>
     </enumeratedValueSet>
     <enumeratedValueSet variable="min-degree">
       <value value="2"/>
     </enumeratedValueSet>
     <enumeratedValueSet variable="link-strength">
       <value value="2"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="PRL-TICKER-START">
+      <value value="0.5"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="PRL-TICKER-STOP">
+      <value value="0.7"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="PRL-TICKER-MAX">
+      <value value="10"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="FACTOR-DIV">
+      <value value="4"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="DECREASE-PCT">
+      <value value="0.1"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="LINK-TRANSMISSION-DISTANCE">
+      <value value="2"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="network-type">
+      <value value="&quot;preferential-attachment&quot;"/>
     </enumeratedValueSet>
     <enumeratedValueSet variable="adaptive-harvest?">
       <value value="true"/>
@@ -4868,9 +4912,6 @@ NetLogo 6.1.1
     </enumeratedValueSet>
     <enumeratedValueSet variable="debugging-agentset?">
       <value value="false"/>
-    </enumeratedValueSet>
-    <enumeratedValueSet variable="nw-filename-chooser">
-      <value value="&quot;caveman_25_16.gml&quot;"/>
     </enumeratedValueSet>
     <enumeratedValueSet variable="INIT-HARVEST-LEVEL">
       <value value="1"/>
@@ -4890,44 +4931,17 @@ NetLogo 6.1.1
     <enumeratedValueSet variable="show-link?">
       <value value="false"/>
     </enumeratedValueSet>
-    <enumeratedValueSet variable="nb-villagers">
-      <value value="79"/>
-    </enumeratedValueSet>
-    <enumeratedValueSet variable="LINK-TRANSMISSION-DISTANCE">
-      <value value="2"/>
-    </enumeratedValueSet>
-    <enumeratedValueSet variable="PRL-TICKER-MAX">
-      <value value="7"/>
-    </enumeratedValueSet>
-    <enumeratedValueSet variable="network-type">
-      <value value="&quot;preferential-attachment&quot;"/>
-    </enumeratedValueSet>
-    <enumeratedValueSet variable="PRL-TICKER-STOP">
-      <value value="0.5"/>
-    </enumeratedValueSet>
     <enumeratedValueSet variable="Turtles-die?">
       <value value="false"/>
     </enumeratedValueSet>
     <enumeratedValueSet variable="HFC-TICKER-START">
       <value value="0.5"/>
     </enumeratedValueSet>
-    <enumeratedValueSet variable="PERCENT-BEST-LAND">
-      <value value="0.08"/>
-      <value value="0.1"/>
-      <value value="0.12"/>
-      <value value="0.16"/>
-    </enumeratedValueSet>
     <enumeratedValueSet variable="MIN-RSC-SAVING-PCT">
       <value value="0"/>
     </enumeratedValueSet>
     <enumeratedValueSet variable="wiring-probability">
       <value value="0.01056"/>
-    </enumeratedValueSet>
-    <enumeratedValueSet variable="PRL-TICKER-START">
-      <value value="0.7"/>
-    </enumeratedValueSet>
-    <enumeratedValueSet variable="FACTOR-DIV">
-      <value value="2"/>
     </enumeratedValueSet>
     <enumeratedValueSet variable="TURTLE-PROC-CHOOSER">
       <value value="&quot;message&quot;"/>
@@ -4954,11 +4968,11 @@ NetLogo 6.1.1
       <value value="0.3"/>
     </enumeratedValueSet>
   </experiment>
-  <experiment name="CAV42" repetitions="5" runMetricsEveryStep="true">
+  <experiment name="CAV42" repetitions="3" runMetricsEveryStep="true">
     <setup>setup2</setup>
     <go>go</go>
     <final>final-command</final>
-    <timeLimit steps="10000"/>
+    <timeLimit steps="3000"/>
     <exitCondition>total-resource-reporter = 0</exitCondition>
     <metric>total-resource-reporter</metric>
     <metric>total-patch-regrowth</metric>
@@ -4970,92 +4984,88 @@ NetLogo 6.1.1
     <enumeratedValueSet variable="experiment-name">
       <value value="&quot;CAV42&quot;"/>
     </enumeratedValueSet>
-    <enumeratedValueSet variable="experiment-name-chooser">
-      <value value="&quot;CAV42&quot;"/>
-    </enumeratedValueSet>
-    <enumeratedValueSet variable="DECREASE-PCT">
-      <value value="0.1"/>
-    </enumeratedValueSet>
-    <enumeratedValueSet variable="min-degree">
-      <value value="2"/>
-    </enumeratedValueSet>
-    <enumeratedValueSet variable="link-strength">
-      <value value="2"/>
-    </enumeratedValueSet>
-    <enumeratedValueSet variable="adaptive-harvest?">
-      <value value="true"/>
-    </enumeratedValueSet>
-    <enumeratedValueSet variable="MAX-TURTLE-BACKPACK">
-      <value value="4"/>
-    </enumeratedValueSet>
-    <enumeratedValueSet variable="debugging-agentset?">
-      <value value="false"/>
-    </enumeratedValueSet>
     <enumeratedValueSet variable="nw-filename-chooser">
       <value value="&quot;caveman_25_16.gml&quot;"/>
     </enumeratedValueSet>
-    <enumeratedValueSet variable="INIT-HARVEST-LEVEL">
-      <value value="1"/>
-    </enumeratedValueSet>
-    <enumeratedValueSet variable="DEBUG-RATE">
-      <value value="0.05"/>
-    </enumeratedValueSet>
-    <enumeratedValueSet variable="INCREASE-PCT">
-      <value value="0.1"/>
-    </enumeratedValueSet>
-    <enumeratedValueSet variable="debugging-agentset-nb">
-      <value value="1"/>
-    </enumeratedValueSet>
-    <enumeratedValueSet variable="HFC-TICKER-MAX">
-      <value value="10"/>
-    </enumeratedValueSet>
-    <enumeratedValueSet variable="show-link?">
-      <value value="false"/>
-    </enumeratedValueSet>
-    <enumeratedValueSet variable="nb-villagers">
-      <value value="79"/>
-    </enumeratedValueSet>
     <enumeratedValueSet variable="LINK-TRANSMISSION-DISTANCE">
       <value value="2"/>
-    </enumeratedValueSet>
-    <enumeratedValueSet variable="PRL-TICKER-MAX">
-      <value value="7"/>
-    </enumeratedValueSet>
-    <enumeratedValueSet variable="network-type">
-      <value value="&quot;preferential-attachment&quot;"/>
-    </enumeratedValueSet>
-    <enumeratedValueSet variable="PRL-TICKER-STOP">
-      <value value="0.5"/>
-    </enumeratedValueSet>
-    <enumeratedValueSet variable="Turtles-die?">
-      <value value="false"/>
-    </enumeratedValueSet>
-    <enumeratedValueSet variable="HFC-TICKER-START">
-      <value value="0.5"/>
-    </enumeratedValueSet>
-    <enumeratedValueSet variable="PERCENT-BEST-LAND">
-      <value value="0.08"/>
-      <value value="0.1"/>
-      <value value="0.12"/>
-      <value value="0.16"/>
-    </enumeratedValueSet>
-    <enumeratedValueSet variable="MIN-RSC-SAVING-PCT">
-      <value value="0"/>
-    </enumeratedValueSet>
-    <enumeratedValueSet variable="wiring-probability">
-      <value value="0.01056"/>
-    </enumeratedValueSet>
-    <enumeratedValueSet variable="PRL-TICKER-START">
-      <value value="0.7"/>
-    </enumeratedValueSet>
-    <enumeratedValueSet variable="FACTOR-DIV">
-      <value value="2"/>
-    </enumeratedValueSet>
-    <enumeratedValueSet variable="TURTLE-PROC-CHOOSER">
-      <value value="&quot;message&quot;"/>
     </enumeratedValueSet>
     <enumeratedValueSet variable="strength-chooser">
       <value value="&quot;all-the-same&quot;"/>
+      <value value="&quot;exponential&quot;"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="link-strength">
+      <value value="2"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="PERCENT-BEST-LAND">
+      <value value="0.05"/>
+      <value value="0.055"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="nb-villagers">
+      <value value="79"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="min-degree">
+      <value value="2"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="PRL-TICKER-START">
+      <value value="0.5"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="PRL-TICKER-STOP">
+      <value value="0.7"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="PRL-TICKER-MAX">
+      <value value="10"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="FACTOR-DIV">
+      <value value="4"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="DECREASE-PCT">
+      <value value="0.1"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="network-type">
+      <value value="&quot;preferential-attachment&quot;"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="adaptive-harvest?">
+      <value value="true"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="MAX-TURTLE-BACKPACK">
+      <value value="4"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="debugging-agentset?">
+      <value value="false"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="INIT-HARVEST-LEVEL">
+      <value value="1"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="DEBUG-RATE">
+      <value value="0.05"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="INCREASE-PCT">
+      <value value="0.1"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="debugging-agentset-nb">
+      <value value="1"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="HFC-TICKER-MAX">
+      <value value="10"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="show-link?">
+      <value value="false"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="Turtles-die?">
+      <value value="false"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="HFC-TICKER-START">
+      <value value="0.5"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="MIN-RSC-SAVING-PCT">
+      <value value="0"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="wiring-probability">
+      <value value="0.01056"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="TURTLE-PROC-CHOOSER">
+      <value value="&quot;message&quot;"/>
     </enumeratedValueSet>
     <enumeratedValueSet variable="MAX-TURTLE-VISION">
       <value value="8"/>
@@ -5076,7 +5086,7 @@ NetLogo 6.1.1
       <value value="0.3"/>
     </enumeratedValueSet>
   </experiment>
-  <experiment name="CAV43" repetitions="5" runMetricsEveryStep="true">
+  <experiment name="CAV43-no" repetitions="5" runMetricsEveryStep="true">
     <setup>setup2</setup>
     <go>go</go>
     <final>final-command</final>
@@ -5198,11 +5208,11 @@ NetLogo 6.1.1
       <value value="0.3"/>
     </enumeratedValueSet>
   </experiment>
-  <experiment name="CAV52" repetitions="5" runMetricsEveryStep="true">
+  <experiment name="CAV52" repetitions="3" runMetricsEveryStep="true">
     <setup>setup2</setup>
     <go>go</go>
     <final>final-command</final>
-    <timeLimit steps="10000"/>
+    <timeLimit steps="3000"/>
     <exitCondition>total-resource-reporter = 0</exitCondition>
     <metric>total-resource-reporter</metric>
     <metric>total-patch-regrowth</metric>
@@ -5217,14 +5227,46 @@ NetLogo 6.1.1
     <enumeratedValueSet variable="experiment-name-chooser">
       <value value="&quot;CAV52&quot;"/>
     </enumeratedValueSet>
-    <enumeratedValueSet variable="DECREASE-PCT">
-      <value value="0.1"/>
+    <enumeratedValueSet variable="nw-filename-chooser">
+      <value value="&quot;caveman_25_16.gml&quot;"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="LINK-TRANSMISSION-DISTANCE">
+      <value value="5"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="strength-chooser">
+      <value value="&quot;all-the-same&quot;"/>
+      <value value="&quot;exponential&quot;"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="link-strength">
+      <value value="2"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="PERCENT-BEST-LAND">
+      <value value="0.05"/>
+      <value value="0.055"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="nb-villagers">
+      <value value="79"/>
     </enumeratedValueSet>
     <enumeratedValueSet variable="min-degree">
       <value value="2"/>
     </enumeratedValueSet>
-    <enumeratedValueSet variable="link-strength">
-      <value value="2"/>
+    <enumeratedValueSet variable="PRL-TICKER-START">
+      <value value="0.5"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="PRL-TICKER-STOP">
+      <value value="0.7"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="PRL-TICKER-MAX">
+      <value value="10"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="FACTOR-DIV">
+      <value value="4"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="DECREASE-PCT">
+      <value value="0.1"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="network-type">
+      <value value="&quot;preferential-attachment&quot;"/>
     </enumeratedValueSet>
     <enumeratedValueSet variable="adaptive-harvest?">
       <value value="true"/>
@@ -5234,9 +5276,6 @@ NetLogo 6.1.1
     </enumeratedValueSet>
     <enumeratedValueSet variable="debugging-agentset?">
       <value value="false"/>
-    </enumeratedValueSet>
-    <enumeratedValueSet variable="nw-filename-chooser">
-      <value value="&quot;caveman_25_16.gml&quot;"/>
     </enumeratedValueSet>
     <enumeratedValueSet variable="INIT-HARVEST-LEVEL">
       <value value="1"/>
@@ -5256,32 +5295,11 @@ NetLogo 6.1.1
     <enumeratedValueSet variable="show-link?">
       <value value="false"/>
     </enumeratedValueSet>
-    <enumeratedValueSet variable="nb-villagers">
-      <value value="79"/>
-    </enumeratedValueSet>
-    <enumeratedValueSet variable="LINK-TRANSMISSION-DISTANCE">
-      <value value="5"/>
-    </enumeratedValueSet>
-    <enumeratedValueSet variable="PRL-TICKER-MAX">
-      <value value="7"/>
-    </enumeratedValueSet>
-    <enumeratedValueSet variable="network-type">
-      <value value="&quot;preferential-attachment&quot;"/>
-    </enumeratedValueSet>
-    <enumeratedValueSet variable="PRL-TICKER-STOP">
-      <value value="0.5"/>
-    </enumeratedValueSet>
     <enumeratedValueSet variable="Turtles-die?">
       <value value="false"/>
     </enumeratedValueSet>
     <enumeratedValueSet variable="HFC-TICKER-START">
       <value value="0.5"/>
-    </enumeratedValueSet>
-    <enumeratedValueSet variable="PERCENT-BEST-LAND">
-      <value value="0.08"/>
-      <value value="0.1"/>
-      <value value="0.12"/>
-      <value value="0.16"/>
     </enumeratedValueSet>
     <enumeratedValueSet variable="MIN-RSC-SAVING-PCT">
       <value value="0"/>
@@ -5289,17 +5307,8 @@ NetLogo 6.1.1
     <enumeratedValueSet variable="wiring-probability">
       <value value="0.01056"/>
     </enumeratedValueSet>
-    <enumeratedValueSet variable="PRL-TICKER-START">
-      <value value="0.7"/>
-    </enumeratedValueSet>
-    <enumeratedValueSet variable="FACTOR-DIV">
-      <value value="2"/>
-    </enumeratedValueSet>
     <enumeratedValueSet variable="TURTLE-PROC-CHOOSER">
       <value value="&quot;message&quot;"/>
-    </enumeratedValueSet>
-    <enumeratedValueSet variable="strength-chooser">
-      <value value="&quot;all-the-same&quot;"/>
     </enumeratedValueSet>
     <enumeratedValueSet variable="MAX-TURTLE-VISION">
       <value value="8"/>
@@ -5320,7 +5329,7 @@ NetLogo 6.1.1
       <value value="0.3"/>
     </enumeratedValueSet>
   </experiment>
-  <experiment name="CAV53" repetitions="5" runMetricsEveryStep="true">
+  <experiment name="CAV53-no" repetitions="5" runMetricsEveryStep="true">
     <setup>setup2</setup>
     <go>go</go>
     <final>final-command</final>
@@ -5534,6 +5543,248 @@ NetLogo 6.1.1
     </enumeratedValueSet>
     <enumeratedValueSet variable="strength-chooser">
       <value value="&quot;normal-3&quot;"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="regrowth-chooser">
+      <value value="&quot;always-regrow&quot;"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="MAX-TURTLE-VISION">
+      <value value="8"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="link-strength-impact-obey?">
+      <value value="true"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="DEBUG">
+      <value value="false"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="color-chooser">
+      <value value="&quot;turtle-connectivity&quot;"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="HFC-TICKER-STOP">
+      <value value="0.3"/>
+    </enumeratedValueSet>
+  </experiment>
+  <experiment name="CAV61" repetitions="3" runMetricsEveryStep="true">
+    <setup>setup2</setup>
+    <go>go</go>
+    <final>final-command</final>
+    <timeLimit steps="3000"/>
+    <exitCondition>total-resource-reporter = 0</exitCondition>
+    <metric>total-resource-reporter</metric>
+    <metric>total-patch-regrowth</metric>
+    <metric>total-turtle-resource-reporter</metric>
+    <metric>total-quantity-harvested</metric>
+    <metric>number-of-hungry-turtles</metric>
+    <metric>total-wealth</metric>
+    <metric>total-food-exchanged</metric>
+    <enumeratedValueSet variable="experiment-name-chooser">
+      <value value="&quot;CAV61&quot;"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="experiment-name">
+      <value value="&quot;CAV61&quot;"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="nw-filename-chooser">
+      <value value="&quot;caveman_25_16.gml&quot;"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="adaptive-harvest?">
+      <value value="false"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="PERCENT-BEST-LAND">
+      <value value="0.05"/>
+      <value value="0.055"/>
+      <value value="0.06"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="MIN-RSC-SAVING-PCT">
+      <value value="0.05"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="LINK-TRANSMISSION-DISTANCE">
+      <value value="2"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="strength-chooser">
+      <value value="&quot;normal-3&quot;"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="DECREASE-PCT">
+      <value value="0.1"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="min-degree">
+      <value value="2"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="link-strength">
+      <value value="2"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="PRL-TICKER-START">
+      <value value="0.5"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="PRL-TICKER-STOP">
+      <value value="0.7"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="PRL-TICKER-MAX">
+      <value value="10"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="FACTOR-DIV">
+      <value value="4"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="MAX-TURTLE-BACKPACK">
+      <value value="4"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="debugging-agentset?">
+      <value value="false"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="INIT-HARVEST-LEVEL">
+      <value value="1"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="DEBUG-RATE">
+      <value value="0.05"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="INCREASE-PCT">
+      <value value="0.1"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="debugging-agentset-nb">
+      <value value="1"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="HFC-TICKER-MAX">
+      <value value="10"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="nb-villagers">
+      <value value="79"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="show-link?">
+      <value value="false"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="network-type">
+      <value value="&quot;preferential-attachment&quot;"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="Turtles-die?">
+      <value value="false"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="TURTLE-PROC-CHOOSER">
+      <value value="&quot;message&quot;"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="wiring-probability">
+      <value value="0.01056"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="HFC-TICKER-START">
+      <value value="0.5"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="regrowth-chooser">
+      <value value="&quot;always-regrow&quot;"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="MAX-TURTLE-VISION">
+      <value value="8"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="link-strength-impact-obey?">
+      <value value="true"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="DEBUG">
+      <value value="false"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="color-chooser">
+      <value value="&quot;turtle-connectivity&quot;"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="HFC-TICKER-STOP">
+      <value value="0.3"/>
+    </enumeratedValueSet>
+  </experiment>
+  <experiment name="CAV62" repetitions="3" runMetricsEveryStep="true">
+    <setup>setup2</setup>
+    <go>go</go>
+    <final>final-command</final>
+    <timeLimit steps="3000"/>
+    <exitCondition>total-resource-reporter = 0</exitCondition>
+    <metric>total-resource-reporter</metric>
+    <metric>total-patch-regrowth</metric>
+    <metric>total-turtle-resource-reporter</metric>
+    <metric>total-quantity-harvested</metric>
+    <metric>number-of-hungry-turtles</metric>
+    <metric>total-wealth</metric>
+    <metric>total-food-exchanged</metric>
+    <enumeratedValueSet variable="experiment-name-chooser">
+      <value value="&quot;CAV62&quot;"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="experiment-name">
+      <value value="&quot;CAV62&quot;"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="nw-filename-chooser">
+      <value value="&quot;caveman_25_16.gml&quot;"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="adaptive-harvest?">
+      <value value="false"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="PERCENT-BEST-LAND">
+      <value value="0.05"/>
+      <value value="0.055"/>
+      <value value="0.06"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="MIN-RSC-SAVING-PCT">
+      <value value="3"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="LINK-TRANSMISSION-DISTANCE">
+      <value value="2"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="strength-chooser">
+      <value value="&quot;normal-3&quot;"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="DECREASE-PCT">
+      <value value="0.1"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="min-degree">
+      <value value="2"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="link-strength">
+      <value value="2"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="PRL-TICKER-START">
+      <value value="0.5"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="PRL-TICKER-STOP">
+      <value value="0.7"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="PRL-TICKER-MAX">
+      <value value="10"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="FACTOR-DIV">
+      <value value="4"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="MAX-TURTLE-BACKPACK">
+      <value value="4"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="debugging-agentset?">
+      <value value="false"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="INIT-HARVEST-LEVEL">
+      <value value="1"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="DEBUG-RATE">
+      <value value="0.05"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="INCREASE-PCT">
+      <value value="0.1"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="debugging-agentset-nb">
+      <value value="1"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="HFC-TICKER-MAX">
+      <value value="10"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="nb-villagers">
+      <value value="79"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="show-link?">
+      <value value="false"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="network-type">
+      <value value="&quot;preferential-attachment&quot;"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="Turtles-die?">
+      <value value="false"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="TURTLE-PROC-CHOOSER">
+      <value value="&quot;message&quot;"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="wiring-probability">
+      <value value="0.01056"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="HFC-TICKER-START">
+      <value value="0.5"/>
     </enumeratedValueSet>
     <enumeratedValueSet variable="regrowth-chooser">
       <value value="&quot;always-regrow&quot;"/>
